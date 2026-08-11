@@ -90,16 +90,16 @@
     <div class="ggp-list-wrap">
       <h3 class="ggp-h3">Your Appliance List</h3>
       <p class="ggp-empty-msg" id="ggp-empty-msg">No appliances added yet — select some above to get started.</p>
-      <div class="ggp-table-scroll">
-        <table class="ggp-table" id="ggp-table" hidden>
+      <div class="ggp-table-scroll" style="width:100% !important;">
+        <table class="ggp-table" id="ggp-table" hidden style="display:none; width:100% !important; max-width:100% !important; table-layout:fixed !important; margin:0 auto !important; border-collapse:collapse;">
           <thead>
             <tr>
-              <th>Appliance</th>
-              <th>Qty</th>
-              <th>Watts</th>
-              <th>Hrs/Day</th>
-              <th>kWh/Day</th>
-              <th></th>
+              <th style="width:32%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Appliance</th>
+              <th style="width:12%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Qty</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Watts</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Hrs/Day</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">kWh/Day</th>
+              <th style="width:11%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">&nbsp;</th>
             </tr>
           </thead>
           <tbody id="ggp-table-body"></tbody>
@@ -704,16 +704,21 @@
     var hasItems = items.length > 0;
     els.table.hidden = !hasItems;
     els.emptyMsg.hidden = hasItems;
+    if (hasItems) {
+      els.table.style.setProperty('display', 'table', 'important');
+    } else {
+      els.table.style.setProperty('display', 'none', 'important');
+    }
 
     els.tbody.innerHTML = items.map(function (it) {
       var kwh = (it.watts * it.hours * it.qty / 1000);
       return '<tr data-uid="' + it.uid + '">' +
-        '<td><span class="ggp-item-name"><span class="ggp-icon">' + (ICONS[it.icon] || ICONS.box) + '</span>' + escapeHtml(it.name) + '</span></td>' +
-        '<td><input type="number" min="1" step="1" value="' + it.qty + '" data-field="qty"></td>' +
-        '<td><input type="number" min="0" step="1" value="' + it.watts + '" data-field="watts"></td>' +
-        '<td><input type="number" min="0" step="0.1" value="' + it.hours + '" data-field="hours"></td>' +
-        '<td>' + kwh.toFixed(2) + '</td>' +
-        '<td><button type="button" class="ggp-remove-btn" aria-label="Remove">&times;</button></td>' +
+        '<td style="text-align:center !important;"><span class="ggp-item-name"><span class="ggp-icon">' + (ICONS[it.icon] || ICONS.box) + '</span>' + escapeHtml(it.name) + '</span></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="1" step="1" value="' + it.qty + '" data-field="qty"></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="0" step="1" value="' + it.watts + '" data-field="watts"></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="0" step="0.1" value="' + it.hours + '" data-field="hours"></td>' +
+        '<td style="text-align:center !important;">' + kwh.toFixed(2) + '</td>' +
+        '<td style="text-align:center !important;"><button type="button" class="ggp-remove-btn" aria-label="Remove">&times;</button></td>' +
         '</tr>';
     }).join('');
 
