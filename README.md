@@ -1,17 +1,37 @@
 # Gogopower Power Usage Calculator
 
-Self-contained widget (HTML + CSS + JS + Liquid in one file) for the Gogopower Shopify store.
+Two ways to run the same calculator (HTML + CSS + JS + Liquid) on the Gogopower Shopify store:
 
-## Install
+- **`sections/ggp-power-calculator.liquid`** — a real theme section with a `{% schema %}` block. Recommended: settings are edited from the theme customizer (collection picker, contact link, etc.) instead of code, and it can be deployed via git/GitHub instead of copy-paste. See [Install as a theme section](#install-as-a-theme-section) below.
+- **`gogopower-energy-calculator.liquid`** — the standalone version meant to be pasted into a "Custom Liquid" block. Kept for reference / stores that can't add theme files. See [Install via Custom Liquid (copy-paste)](#install-via-custom-liquid-copy-paste) below.
+
+Functionally the two are identical.
+
+## Install as a theme section
+
+This requires the file to be part of your actual theme's codebase (not just this standalone repo).
+
+1. **Get the file into your theme**, either:
+   - **One-time manual step**: Shopify Admin → Online Store → Themes → your theme's **⋯** menu → **Edit code** → in the **Sections** folder, **Add a new section**, name it `ggp-power-calculator`, paste in the contents of `sections/ggp-power-calculator.liquid`, and Save. *or*
+   - **Git-managed**: if your live theme is connected to a GitHub repo (Admin → Themes → **Add theme** → **Connect from GitHub**, or ask your dev to set this up), add this file at `sections/ggp-power-calculator.liquid` in that repo. Every push then updates the theme automatically — no more copy-paste.
+2. Go to the theme customizer (Admin → Online Store → Themes → **Customize**), open the page you want the calculator on, click **Add section**, and choose **GGP Power Calculator**.
+3. In the section's settings panel (right sidebar), configure:
+   - **Generator collection** — pick your generator collection from the dropdown (no more typing a handle by hand)
+   - **kVA metafield namespace / key** — defaults to `custom` / `prime_power`
+   - **Contact page link** — pick your Contact page with Shopify's link picker
+   - **Power factor** / **Safety margin** — sliders, default 0.8 / 1.3
+4. Save, then preview on desktop and mobile.
+
+## Install via Custom Liquid (copy-paste)
 
 1. Shopify Admin → Online Store → Themes → Customize
 2. Add a **Custom Liquid** section/block on the page you want the calculator (e.g. a "Solar & Generator Calculator" page)
 3. Open `gogopower-energy-calculator.liquid`, copy the **entire file**, paste it into the Custom Liquid block, and Save
 4. Preview the page on desktop and mobile
 
-## Configuration
+### Configuration (Custom Liquid version only)
 
-All settings live in one block near the top of the file:
+The section version uses the customizer's settings panel instead (see above). The Custom Liquid version's settings live in one block near the top of the file:
 
 ```liquid
 {%- assign ggp_collection_handle = 'generator' -%}

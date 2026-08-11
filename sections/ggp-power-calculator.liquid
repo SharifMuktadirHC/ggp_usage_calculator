@@ -1,0 +1,869 @@
+<!--
+  Gogopower Off-Grid / Backup Power Usage Calculator (theme section)
+  ====================================================================
+  All configuration below is exposed as section settings - edit them
+  from the theme customizer (Add section > GGP Power Calculator),
+  no code editing required.
+-->
+{%- assign ggp_collection = section.settings.product_collection -%}
+{%- assign ggp_kva_namespace = section.settings.kva_namespace -%}
+{%- assign ggp_kva_key = section.settings.kva_key -%}
+{%- assign ggp_contact_url = section.settings.contact_url -%}
+{%- assign ggp_power_factor = section.settings.power_factor -%}
+{%- assign ggp_safety_margin = section.settings.safety_margin -%}
+<!--
+  ggp_power_factor / ggp_safety_margin control how "Running Watts" are converted
+  into a recommended kVA rating. Increase ggp_safety_margin for more headroom.
+
+  Price is NOT a metafield - it comes straight from each product's own price
+  (product.price), formatted with Shopify's "money" filter below.
+
+  If your generator collection has more than 250 products, raise the "by 250"
+  number in the paginate block below.
+-->
+<script type="application/json" id="ggp-product-data">
+[
+{%- if ggp_collection -%}
+  {%- paginate ggp_collection.products by 250 -%}
+    {%- assign ggp_first = true -%}
+    {%- for product in ggp_collection.products -%}
+      {%- assign ggp_kva_val = product.metafields[ggp_kva_namespace][ggp_kva_key] -%}
+      {%- if ggp_kva_val != blank -%}
+        {%- assign ggp_img = '' -%}
+        {%- if product.featured_image -%}
+          {%- assign ggp_img = product.featured_image | image_url: width: 300 -%}
+        {%- endif -%}
+        {%- unless ggp_first -%},{%- endunless -%}
+        {%- assign ggp_first = false -%}
+        {"title": {{ product.title | json }}, "kva": {{ ggp_kva_val | json }}, "price": {{ product.price | money | json }}, "url": {{ product.url | json }}, "image": {{ ggp_img | json }}}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endpaginate -%}
+{%- endif -%}
+]
+</script>
+
+<div id="ggp-calculator" class="ggp-calc">
+
+  <!-- ============ INTRO / GUIDELINE ============ -->
+  <div class="ggp-intro" id="ggp-intro">
+    <h2 class="ggp-title">Power Usage Calculator</h2>
+    <p class="ggp-subtitle">Work out how much power you need and find the right Gogopower generator for the job.</p>
+    <div class="ggp-steps">
+      <div class="ggp-step"><span class="ggp-step-num">1</span><span>Pick a category and tap the appliances you use</span></div>
+      <div class="ggp-step"><span class="ggp-step-num">2</span><span>Adjust quantity, wattage and hours per day for each item</span></div>
+      <div class="ggp-step"><span class="ggp-step-num">3</span><span>Review your total daily energy usage</span></div>
+      <div class="ggp-step"><span class="ggp-step-num">4</span><span>Get matched with suitable Gogopower generators</span></div>
+    </div>
+    <button type="button" class="ggp-btn ggp-btn-primary ggp-btn-large" id="ggp-start-btn">Start Calculator</button>
+  </div>
+
+  <!-- ============ CALCULATOR APP ============ -->
+  <div class="ggp-app" id="ggp-app" hidden>
+
+    <div class="ggp-tabs" role="tablist" id="ggp-tabs">
+      <button type="button" class="ggp-tab active" data-cat="household" role="tab" aria-selected="true">Household</button>
+      <button type="button" class="ggp-tab" data-cat="commercial" role="tab" aria-selected="false">Commercial</button>
+      <button type="button" class="ggp-tab" data-cat="industrial" role="tab" aria-selected="false">Industrial</button>
+      <button type="button" class="ggp-tab" data-cat="agriculture" role="tab" aria-selected="false">Agriculture</button>
+    </div>
+
+    <p class="ggp-hint">Tap an appliance to add it to your list. Add the same appliance more than once if you need different wattages.</p>
+
+    <div class="ggp-grid" id="ggp-appliance-grid"></div>
+
+    <button type="button" class="ggp-btn ggp-btn-outline" id="ggp-add-custom-toggle">+ Add custom appliance</button>
+
+    <div class="ggp-custom-form" id="ggp-custom-form" hidden>
+      <input type="text" id="ggp-custom-name" placeholder="Appliance name" maxlength="60">
+      <input type="number" id="ggp-custom-watts" placeholder="Watts" min="0" step="1">
+      <input type="number" id="ggp-custom-hours" placeholder="Hours/day" min="0" max="24" step="0.5">
+      <button type="button" class="ggp-btn ggp-btn-primary" id="ggp-custom-add-btn">Add</button>
+    </div>
+
+    <div class="ggp-list-wrap">
+      <h3 class="ggp-h3">Your Appliance List</h3>
+      <p class="ggp-empty-msg" id="ggp-empty-msg">No appliances added yet — select some above to get started.</p>
+      <div class="ggp-table-scroll" style="width:100% !important;">
+        <table class="ggp-table" id="ggp-table" hidden style="display:none; width:100% !important; max-width:100% !important; table-layout:fixed !important; margin:0 auto !important; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="width:32%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Appliance</th>
+              <th style="width:12%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Qty</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Watts</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">Hrs/Day</th>
+              <th style="width:15%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">kWh/Day</th>
+              <th style="width:11%; text-align:center !important; color:var(--ggp-white) !important; background:var(--ggp-navy) !important;">&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody id="ggp-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ggp-summary">
+      <div class="ggp-summary-card">
+        <span>Total Connected Load</span>
+        <strong id="ggp-total-watts">0 W</strong>
+      </div>
+      <div class="ggp-summary-card">
+        <span>Estimated Daily Usage</span>
+        <strong id="ggp-total-kwh">0 kWh/day</strong>
+      </div>
+      <div class="ggp-summary-card ggp-summary-highlight">
+        <span>Recommended Capacity</span>
+        <strong id="ggp-total-kva">0 kVA</strong>
+      </div>
+    </div>
+
+    <div class="ggp-results" id="ggp-results" hidden>
+      <h3 class="ggp-h3">Recommended Gogopower Generators</h3>
+      <div class="ggp-products" id="ggp-products-grid"></div>
+      <p class="ggp-empty-msg" id="ggp-no-products" hidden>We couldn't find an exact match in our range — contact our team below and we'll help size the right system for you.</p>
+    </div>
+
+    <div class="ggp-contact-cta">
+      <p>Not sure which system is right for you?</p>
+      <a href="{{ ggp_contact_url }}" class="ggp-btn ggp-btn-primary ggp-btn-large" id="ggp-contact-btn">Talk to Our Team</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  #ggp-calculator {
+    --ggp-navy: #032B44;
+    --ggp-green: #3C9342;
+    --ggp-white: #FFFFFF;
+    --ggp-black: #000000;
+    --ggp-grey: #6b7680;
+    --ggp-border: #d8dde1;
+    --ggp-bg-soft: #f5f7f8;
+    font-family: inherit;
+    color: var(--ggp-black);
+    background: var(--ggp-white);
+    max-width: 960px;
+    margin: 10px auto 30px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  #ggp-calculator *, #ggp-calculator *::before, #ggp-calculator *::after { box-sizing: border-box; }
+
+  /* ---- Intro ---- */
+  .ggp-intro {
+    border: 1px solid var(--ggp-black);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    background: var(--ggp-bg-soft);
+  }
+  .ggp-title { color: var(--ggp-navy); font-size: 28px; margin: 0 0 8px; font-weight: 700; }
+  .ggp-subtitle { color: var(--ggp-black); font-size: 16px; margin: 0 0 24px; }
+  .ggp-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 0 0 28px;
+    text-align: center;
+  }
+  .ggp-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--ggp-white);
+    border: 1px solid var(--ggp-border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+  }
+  .ggp-step-num {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--ggp-green);
+    color: var(--ggp-white);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Buttons ---- */
+  .ggp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--ggp-navy);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .ggp-btn-primary,
+  .ggp-btn-primary:link,
+  .ggp-btn-primary:visited { background: var(--ggp-navy); color: var(--ggp-white); }
+  .ggp-btn-primary:hover,
+  .ggp-btn-primary:focus-visible { background: var(--ggp-green); border-color: var(--ggp-green); color: var(--ggp-white); }
+  .ggp-btn-outline { background: var(--ggp-white); color: var(--ggp-navy); border: 1px solid var(--ggp-black); margin: 18px 0 0; }
+  .ggp-btn-outline:hover { border-color: var(--ggp-green); color: var(--ggp-green); }
+  .ggp-btn-large { padding: 14px 32px; font-size: 16px; }
+
+  /* ---- Tabs ---- */
+  .ggp-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    overflow-x: auto;
+    border-bottom: 2px solid var(--ggp-border);
+    margin: 28px 0 6px;
+  }
+  .ggp-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ggp-grey);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .ggp-tab.active { color: var(--ggp-navy); border-bottom-color: var(--ggp-green); }
+  .ggp-tab:hover { color: var(--ggp-green); }
+
+  .ggp-hint { font-size: 13px; color: var(--ggp-grey); margin: 4px 0 16px; }
+
+  /* ---- Appliance grid: icon + text on ONE line ---- */
+  .ggp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    justify-content: center;
+    gap: 10px;
+  }
+  .ggp-appliance-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    background: var(--ggp-white);
+    border: 1px solid var(--ggp-black);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ggp-black);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .ggp-appliance-btn:hover, .ggp-appliance-btn:focus-visible {
+    border-color: var(--ggp-green);
+    background: #eef6ef;
+    outline: none;
+  }
+  .ggp-appliance-btn .ggp-icon {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    color: var(--ggp-navy);
+  }
+  .ggp-appliance-btn .ggp-icon svg { width: 100%; height: 100%; }
+  .ggp-appliance-btn .ggp-name {
+    flex: 1 1 auto;
+    line-height: 1.2;
+    white-space: normal;
+  }
+  .ggp-appliance-btn .ggp-sub {
+    display: block;
+    font-weight: 400;
+    font-size: 11.5px;
+    color: var(--ggp-grey);
+  }
+
+  /* ---- Custom appliance form ---- */
+  .ggp-custom-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--ggp-bg-soft);
+    border: 1px solid var(--ggp-border);
+    border-radius: 8px;
+  }
+  .ggp-custom-form input {
+    flex: 1 1 140px;
+    padding: 10px;
+    border: 1px solid var(--ggp-black);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  /* ---- List / table ---- */
+  .ggp-list-wrap { margin-top: 30px; }
+  .ggp-h3 { color: var(--ggp-navy); font-size: 19px; margin: 0 0 10px; }
+  .ggp-empty-msg { color: var(--ggp-grey); font-size: 14px; }
+  .ggp-table-scroll { overflow-x: auto; width: 100%; }
+  #ggp-calculator .ggp-table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 0 auto !important;
+  }
+  .ggp-table th:nth-child(1), .ggp-table td:nth-child(1) { width: 32%; }
+  .ggp-table th:nth-child(2), .ggp-table td:nth-child(2) { width: 12%; }
+  .ggp-table th:nth-child(3), .ggp-table td:nth-child(3) { width: 15%; }
+  .ggp-table th:nth-child(4), .ggp-table td:nth-child(4) { width: 15%; }
+  .ggp-table th:nth-child(5), .ggp-table td:nth-child(5) { width: 15%; }
+  .ggp-table th:nth-child(6), .ggp-table td:nth-child(6) { width: 11%; }
+  #ggp-calculator .ggp-table th {
+    text-align: center !important;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ggp-white) !important;
+    background: var(--ggp-navy) !important;
+    padding: 10px 6px;
+  }
+  #ggp-calculator .ggp-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--ggp-border);
+    font-size: 14px;
+    vertical-align: middle;
+    text-align: center !important;
+    word-break: break-word;
+  }
+  .ggp-table tr:hover td { background: var(--ggp-bg-soft); }
+  .ggp-table input[type="number"] {
+    width: 100%;
+    max-width: 72px;
+    padding: 6px 4px;
+    border: 1px solid var(--ggp-black);
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+  }
+  .ggp-item-name { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
+  .ggp-item-name .ggp-icon { width: 20px; height: 20px; color: var(--ggp-navy); flex: 0 0 auto; }
+  .ggp-item-name .ggp-icon svg { width: 100%; height: 100%; }
+  .ggp-remove-btn {
+    background: none;
+    border: 1px solid var(--ggp-black);
+    color: var(--ggp-black);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .ggp-remove-btn:hover { border-color: #c0392b; color: #c0392b; }
+
+  /* ---- Summary ---- */
+  .ggp-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .ggp-summary-card {
+    border: 1px solid var(--ggp-black);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ggp-summary-card span { font-size: 13px; color: var(--ggp-grey); }
+  .ggp-summary-card strong { font-size: 24px; color: var(--ggp-navy); }
+  .ggp-summary-highlight {
+    grid-column: 1 / -1;
+    background: var(--ggp-navy);
+    border-color: var(--ggp-navy);
+  }
+  .ggp-summary-highlight span { color: var(--ggp-white); }
+  .ggp-summary-highlight strong {
+    color: var(--ggp-white);
+    animation: ggp-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes ggp-glow {
+    0%, 100% { text-shadow: 0 0 6px rgba(60,147,66,0.7), 0 0 14px rgba(60,147,66,0.4); }
+    50% { text-shadow: 0 0 14px rgba(60,147,66,1), 0 0 28px rgba(60,147,66,0.7); }
+  }
+  @media (max-width: 380px) {
+    .ggp-summary { grid-template-columns: 1fr; }
+    .ggp-summary-highlight { grid-column: auto; }
+  }
+
+  /* ---- Product suggestions ---- */
+  .ggp-results { margin-top: 30px; }
+  .ggp-products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .ggp-product-card {
+    display: block;
+    border: 1px solid var(--ggp-black);
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--ggp-black);
+    background: var(--ggp-white);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .ggp-product-card:hover { border-color: var(--ggp-green); box-shadow: 0 4px 14px rgba(3,43,68,0.12); }
+  .ggp-product-img {
+    width: 100%;
+    height: 160px;
+    object-fit: contain;
+    padding: 10px;
+    background: var(--ggp-bg-soft);
+    display: block;
+  }
+  .ggp-product-body { padding: 12px 14px; text-align: center; }
+  .ggp-product-title { font-weight: 700; font-size: 15px; margin: 0 0 8px; color: var(--ggp-navy); }
+  .ggp-product-meta { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 13px; color: var(--ggp-grey); }
+  .ggp-product-price { font-weight: 700; color: var(--ggp-navy); }
+  .ggp-product-kva {
+    display: inline-block;
+    background: var(--ggp-green);
+    color: var(--ggp-white);
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-weight: 700;
+    font-size: 12.5px;
+  }
+  .ggp-product-cta { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--ggp-green); }
+
+  /* ---- Contact CTA ---- */
+  .ggp-contact-cta {
+    margin-top: 34px;
+    padding: 26px;
+    border: 1px solid var(--ggp-black);
+    border-radius: 10px;
+    background: var(--ggp-bg-soft);
+    text-align: center;
+  }
+  .ggp-contact-cta p { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 720px) {
+    .ggp-steps { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .ggp-steps { grid-template-columns: 1fr; }
+    .ggp-intro { padding: 24px 16px; }
+    .ggp-title { font-size: 22px; }
+    .ggp-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .ggp-summary-card strong { font-size: 20px; }
+    .ggp-table th, .ggp-table td { font-size: 11.5px; padding: 6px 3px; }
+    .ggp-item-name { flex-direction: column; gap: 4px; }
+    .ggp-table input[type="number"] { padding: 5px 2px; font-size: 12px; }
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.getElementById('ggp-calculator');
+  if (!root) return;
+
+  /* ---------------- Config passed from Liquid ---------------- */
+  var POWER_FACTOR = {{ ggp_power_factor }};
+  var SAFETY_MARGIN = {{ ggp_safety_margin }};
+
+  var PRODUCTS = [];
+  try {
+    var dataEl = document.getElementById('ggp-product-data');
+    PRODUCTS = JSON.parse((dataEl && dataEl.textContent) || '[]').map(function (p) {
+      return {
+        title: p.title || 'Gogopower Generator',
+        kva: parseFloat(p.kva) || 0,
+        price: p.price || '',
+        url: p.url || '#',
+        image: p.image || ''
+      };
+    }).filter(function (p) { return p.kva > 0; });
+  } catch (e) { PRODUCTS = []; }
+
+  /* ---------------- Icon set (inline SVG, single color via currentColor) ---------------- */
+  var ICONS = {
+    bulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.4.8 1 .8 1.6V16h5.4v-.5c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3z"/></svg>',
+    tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="1.5"/><path d="M8 21h8M12 18v3"/></svg>',
+    fridge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="1.5"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="8" y1="5" x2="8" y2="7"/><line x1="8" y1="13" x2="8" y2="16"/></svg>',
+    washer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/><line x1="7" y1="6" x2="7" y2="6.01"/><line x1="10" y1="6" x2="10" y2="6.01"/></svg>',
+    microwave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1.5"/><rect x="4.5" y="7.5" width="11" height="9" rx="1"/><line x1="18.5" y1="9" x2="18.5" y2="9.01"/><line x1="18.5" y1="12" x2="18.5" y2="12.01"/><line x1="18.5" y1="15" x2="18.5" y2="15.01"/></svg>',
+    kettle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10a7 7 0 0 1 14 0v3a7 7 0 0 1-7 7 7 7 0 0 1-7-7v-3z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/><line x1="12" y1="2" x2="12" y2="4"/></svg>',
+    toaster: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="11" rx="2"/><path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><path d="M8 3.5v2M12 3.5v2M16 3.5v2"/></svg>',
+    iron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c0-4 3-9 9-9h6a3 3 0 0 1 3 3v2c0 2-2 4-5 4H8l-3 3z"/><line x1="7" y1="20" x2="17" y2="20"/></svg>',
+    hairdryer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4a6 6 0 0 1 0 12h-2L4 19v-3l5-2a6 6 0 0 1 4-10z"/><circle cx="10" cy="10" r="1"/></svg>',
+    ac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="7" x2="20" y2="17"/><line x1="4" y1="17" x2="20" y2="7"/></svg>',
+    fan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><path d="M12 10.5c-1-3-.5-6 2-7.5 2 1 2.5 4 .5 6.5M12 13.5c1 3 .5 6-2 7.5-2-1-2.5-4-.5-6.5M10.5 12c-3 1-6 .5-7.5-2 1-2 4-2.5 6.5-.5M13.5 12c3-1 6-.5 7.5 2-1 2-4 2.5-6.5.5"/></svg>',
+    laptop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="10" rx="1"/><path d="M2 18h20l-2-3H4l-2 3z"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="18" rx="1.5"/><line x1="10" y1="17" x2="14" y2="17"/></svg>',
+    wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a13 13 0 0 1 16 0M7 12.5a9 9 0 0 1 10 0M10 16a5 5 0 0 1 4 0"/><circle cx="12" cy="19" r="1"/></svg>',
+    dishwasher: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="8" x2="21" y2="8"/><circle cx="7" cy="5.5" r="0.8"/><circle cx="10" cy="5.5" r="0.8"/><path d="M8 13h8M8 16h8"/></svg>',
+    pump: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+    zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4 14 11 14 10 22 20 9 13 9 13 2"/></svg>',
+    tank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="14" height="10" rx="5"/><line x1="18" y1="10" x2="21" y2="10"/><line x1="18" y1="14" x2="21" y2="14"/></svg>',
+    saw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M10 8v-1M10 20v1M4.6 10.4l-.7-.7M15.4 17.6l.7.7M4.6 17.6l-.7.7M15.4 10.4l.7-.7"/><path d="M16 14h5l-2-3-2 3z"/></svg>',
+    truck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="10" height="6" rx="1"/><path d="M12 12h4l3 3v1h-2"/><circle cx="6" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/><line x1="14" y1="7" x2="14" y2="12"/></svg>',
+    cash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M6 9V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3"/><line x1="7" y1="14" x2="10" y2="14"/><line x1="7" y1="17" x2="13" y2="17"/></svg>',
+    coffee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><line x1="7" y1="3" x2="7" y2="5"/><line x1="10.5" y1="3" x2="10.5" y2="5"/></svg>',
+    printer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="8" rx="1"/><path d="M7 8V4h10v4M7 16v4h10v-4"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>',
+    sign: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="9" rx="1.5"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="15" x2="12" y2="20"/><line x1="6.5" y1="10.5" x2="17.5" y2="10.5"/></svg>',
+    heater: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 3-2 4-2 7a3 3 0 0 0 6 0c0-1-.5-2-1-2 1 2-1 3-1 5a4 4 0 0 1-8 0c0-4 4-5 4-10"/></svg>',
+    box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><line x1="12" y1="11" x2="12" y2="21"/></svg>'
+  };
+
+  /* ---------------- Appliance database (approximate defaults — editable per row) ---------------- */
+  var APPLIANCES = {
+    household: [
+      { name: 'LED Lighting', icon: 'bulb', watts: 10, hours: 5 },
+      { name: 'Television', icon: 'tv', watts: 120, hours: 5 },
+      { name: 'Fridge / Freezer', icon: 'fridge', watts: 150, hours: 24 },
+      { name: 'Washing Machine', icon: 'washer', watts: 500, hours: 1 },
+      { name: 'Microwave', icon: 'microwave', watts: 1000, hours: 0.5 },
+      { name: 'Electric Kettle', icon: 'kettle', watts: 1200, hours: 0.3 },
+      { name: 'Toaster', icon: 'toaster', watts: 900, hours: 0.2 },
+      { name: 'Iron', icon: 'iron', watts: 1000, hours: 0.5 },
+      { name: 'Hair Dryer', icon: 'hairdryer', watts: 1200, hours: 0.2 },
+      { name: 'Air Conditioner', icon: 'ac', watts: 1500, hours: 4 },
+      { name: 'Fan', icon: 'fan', watts: 75, hours: 6 },
+      { name: 'Laptop', icon: 'laptop', watts: 65, hours: 4 },
+      { name: 'Phone Charger', icon: 'phone', watts: 10, hours: 2 },
+      { name: 'WiFi Router', icon: 'wifi', watts: 10, hours: 24 },
+      { name: 'Dishwasher', icon: 'dishwasher', watts: 1200, hours: 1 },
+      { name: 'Water Pump', icon: 'pump', watts: 750, hours: 1 }
+    ],
+    commercial: [
+      { name: 'POS / Cash Register', icon: 'cash', watts: 60, hours: 10 },
+      { name: 'Coffee Machine', icon: 'coffee', watts: 1200, hours: 6 },
+      { name: 'Display Fridge / Freezer', icon: 'fridge', watts: 400, hours: 24 },
+      { name: 'Commercial Lighting', icon: 'bulb', watts: 40, hours: 10 },
+      { name: 'Split System A/C', icon: 'ac', watts: 2500, hours: 8 },
+      { name: 'Computer / Monitor', icon: 'laptop', watts: 150, hours: 10 },
+      { name: 'Printer / Copier', icon: 'printer', watts: 300, hours: 3 },
+      { name: 'Security System / CCTV', icon: 'shield', watts: 50, hours: 24 },
+      { name: 'Illuminated Signage', icon: 'sign', watts: 100, hours: 12 },
+      { name: 'Exhaust Fan', icon: 'fan', watts: 120, hours: 10 },
+      { name: 'Instant Water Heater', icon: 'heater', watts: 3000, hours: 1 }
+    ],
+    industrial: [
+      { name: 'Air Compressor', icon: 'tank', watts: 2200, hours: 4 },
+      { name: 'Welding Machine', icon: 'zap', watts: 4000, hours: 2 },
+      { name: 'Angle Grinder', icon: 'gear', watts: 900, hours: 1 },
+      { name: 'Bench Drill Press', icon: 'gear', watts: 750, hours: 2 },
+      { name: 'Conveyor Belt Motor', icon: 'gear', watts: 1500, hours: 8 },
+      { name: 'CNC Machine', icon: 'gear', watts: 3000, hours: 6 },
+      { name: 'Industrial Fan', icon: 'fan', watts: 200, hours: 8 },
+      { name: 'Lathe Machine', icon: 'gear', watts: 2200, hours: 4 },
+      { name: 'Forklift Battery Charger', icon: 'truck', watts: 3000, hours: 4 },
+      { name: 'Industrial Water Pump', icon: 'pump', watts: 2200, hours: 6 },
+      { name: 'Circular Saw', icon: 'saw', watts: 1500, hours: 2 }
+    ],
+    agriculture: [
+      { name: 'Irrigation Pump', icon: 'pump', watts: 3000, hours: 6 },
+      { name: 'Water Trough Pump', icon: 'pump', watts: 500, hours: 4 },
+      { name: 'Electric Fence Energiser', icon: 'zap', watts: 30, hours: 24 },
+      { name: 'Wool Shearing Machine', icon: 'gear', watts: 400, hours: 4 },
+      { name: 'Grain Auger', icon: 'gear', watts: 4000, hours: 3 },
+      { name: 'Milking Machine', icon: 'gear', watts: 1500, hours: 3 },
+      { name: 'Electric Chainsaw', icon: 'saw', watts: 2000, hours: 1 },
+      { name: 'Feed Mixer', icon: 'gear', watts: 3000, hours: 2 },
+      { name: 'Cool Room / Chiller', icon: 'ac', watts: 1200, hours: 24 },
+      { name: 'Shed Fan', icon: 'fan', watts: 150, hours: 10 },
+      { name: 'Workshop Lighting', icon: 'bulb', watts: 60, hours: 6 }
+    ]
+  };
+
+  /* ---------------- State ---------------- */
+  var items = [];
+  var uidCounter = 0;
+  var activeCat = 'household';
+
+  var els = {
+    startBtn: document.getElementById('ggp-start-btn'),
+    intro: document.getElementById('ggp-intro'),
+    app: document.getElementById('ggp-app'),
+    tabs: document.getElementById('ggp-tabs'),
+    grid: document.getElementById('ggp-appliance-grid'),
+    customToggle: document.getElementById('ggp-add-custom-toggle'),
+    customForm: document.getElementById('ggp-custom-form'),
+    customName: document.getElementById('ggp-custom-name'),
+    customWatts: document.getElementById('ggp-custom-watts'),
+    customHours: document.getElementById('ggp-custom-hours'),
+    customAddBtn: document.getElementById('ggp-custom-add-btn'),
+    table: document.getElementById('ggp-table'),
+    tbody: document.getElementById('ggp-table-body'),
+    emptyMsg: document.getElementById('ggp-empty-msg'),
+    totalWatts: document.getElementById('ggp-total-watts'),
+    totalKwh: document.getElementById('ggp-total-kwh'),
+    totalKva: document.getElementById('ggp-total-kva'),
+    results: document.getElementById('ggp-results'),
+    productsGrid: document.getElementById('ggp-products-grid'),
+    noProducts: document.getElementById('ggp-no-products')
+  };
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------------- Render appliance grid ---------------- */
+  function renderGrid() {
+    var list = APPLIANCES[activeCat] || [];
+    els.grid.innerHTML = list.map(function (a, idx) {
+      return '<button type="button" class="ggp-appliance-btn" data-cat="' + activeCat + '" data-idx="' + idx + '">' +
+        '<span class="ggp-icon">' + (ICONS[a.icon] || ICONS.box) + '</span>' +
+        '<span class="ggp-name">' + escapeHtml(a.name) + '<span class="ggp-sub">' + a.watts + 'W typical</span></span>' +
+        '</button>';
+    }).join('');
+  }
+
+  els.tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ggp-tab');
+    if (!btn) return;
+    activeCat = btn.getAttribute('data-cat');
+    Array.prototype.forEach.call(els.tabs.querySelectorAll('.ggp-tab'), function (t) {
+      var isActive = t === btn;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    renderGrid();
+  });
+
+  els.grid.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ggp-appliance-btn');
+    if (!btn) return;
+    var cat = btn.getAttribute('data-cat');
+    var idx = parseInt(btn.getAttribute('data-idx'), 10);
+    var def = APPLIANCES[cat][idx];
+    addItem(def.name, def.icon, def.watts, def.hours);
+  });
+
+  /* ---------------- Custom appliance ---------------- */
+  els.customToggle.addEventListener('click', function () {
+    els.customForm.hidden = !els.customForm.hidden;
+    if (!els.customForm.hidden) els.customName.focus();
+  });
+
+  els.customAddBtn.addEventListener('click', function () {
+    var name = els.customName.value.trim();
+    var watts = parseFloat(els.customWatts.value);
+    var hours = parseFloat(els.customHours.value);
+    if (!name) { els.customName.focus(); return; }
+    if (isNaN(watts) || watts < 0) { els.customWatts.focus(); return; }
+    if (isNaN(hours) || hours < 0) { els.customHours.focus(); return; }
+    addItem(name, 'box', watts, hours);
+    els.customName.value = '';
+    els.customWatts.value = '';
+    els.customHours.value = '';
+    els.customForm.hidden = true;
+  });
+
+  /* ---------------- Item list management ---------------- */
+  function addItem(name, icon, watts, hours) {
+    items.push({ uid: 'ggp-' + (uidCounter++), name: name, icon: icon, watts: watts, hours: hours, qty: 1 });
+    renderList();
+  }
+
+  function removeItem(uid) {
+    items = items.filter(function (it) { return it.uid !== uid; });
+    renderList();
+  }
+
+  function updateItem(uid, field, value) {
+    var it = items.filter(function (i) { return i.uid === uid; })[0];
+    if (!it) return;
+    it[field] = value;
+    renderList();
+  }
+
+  function renderList() {
+    var hasItems = items.length > 0;
+    els.table.hidden = !hasItems;
+    els.emptyMsg.hidden = hasItems;
+    if (hasItems) {
+      els.table.style.setProperty('display', 'table', 'important');
+    } else {
+      els.table.style.setProperty('display', 'none', 'important');
+    }
+
+    els.tbody.innerHTML = items.map(function (it) {
+      var kwh = (it.watts * it.hours * it.qty / 1000);
+      return '<tr data-uid="' + it.uid + '">' +
+        '<td style="text-align:center !important;"><span class="ggp-item-name"><span class="ggp-icon">' + (ICONS[it.icon] || ICONS.box) + '</span>' + escapeHtml(it.name) + '</span></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="1" step="1" value="' + it.qty + '" data-field="qty"></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="0" step="1" value="' + it.watts + '" data-field="watts"></td>' +
+        '<td style="text-align:center !important;"><input type="number" min="0" step="0.1" value="' + it.hours + '" data-field="hours"></td>' +
+        '<td style="text-align:center !important;">' + kwh.toFixed(2) + '</td>' +
+        '<td style="text-align:center !important;"><button type="button" class="ggp-remove-btn" aria-label="Remove">&times;</button></td>' +
+        '</tr>';
+    }).join('');
+
+    computeTotals();
+  }
+
+  els.tbody.addEventListener('input', function (e) {
+    var input = e.target;
+    if (input.tagName !== 'INPUT') return;
+    var row = input.closest('tr');
+    var uid = row.getAttribute('data-uid');
+    var field = input.getAttribute('data-field');
+    var value = parseFloat(input.value);
+    if (isNaN(value) || value < 0) return;
+    var it = items.filter(function (i) { return i.uid === uid; })[0];
+    if (!it) return;
+    it[field] = value;
+    var kwhCell = row.children[4];
+    kwhCell.textContent = (it.watts * it.hours * it.qty / 1000).toFixed(2);
+    computeTotals();
+  });
+
+  els.tbody.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ggp-remove-btn');
+    if (!btn) return;
+    var row = btn.closest('tr');
+    removeItem(row.getAttribute('data-uid'));
+  });
+
+  /* ---------------- Totals + product matching ---------------- */
+  function computeTotals() {
+    var totalWatts = 0;
+    var totalKwh = 0;
+    items.forEach(function (it) {
+      totalWatts += it.watts * it.qty;
+      totalKwh += (it.watts * it.hours * it.qty) / 1000;
+    });
+    var requiredKva = (totalWatts * SAFETY_MARGIN) / (1000 * POWER_FACTOR);
+
+    els.totalWatts.textContent = Math.round(totalWatts).toLocaleString() + ' W';
+    els.totalKwh.textContent = totalKwh.toFixed(1) + ' kWh/day';
+    els.totalKva.textContent = requiredKva.toFixed(1) + ' kVA';
+
+    renderSuggestions(requiredKva);
+  }
+
+  function renderSuggestions(requiredKva) {
+    if (items.length === 0 || requiredKva <= 0) {
+      els.results.hidden = true;
+      return;
+    }
+    els.results.hidden = false;
+
+    var matches = PRODUCTS.filter(function (p) { return p.kva >= requiredKva; })
+      .sort(function (a, b) { return a.kva - b.kva; })
+      .slice(0, 3);
+
+    if (matches.length === 0) {
+      matches = PRODUCTS.slice().sort(function (a, b) { return b.kva - a.kva; }).slice(0, 3);
+    }
+
+    els.noProducts.hidden = matches.length > 0;
+    els.productsGrid.innerHTML = matches.map(function (p) {
+      var img = p.image ? '<img class="ggp-product-img" src="' + escapeHtml(p.image) + '" alt="' + escapeHtml(p.title) + '" loading="lazy">' : '';
+      return '<a class="ggp-product-card" href="' + escapeHtml(p.url) + '">' +
+        img +
+        '<div class="ggp-product-body">' +
+        '<p class="ggp-product-title">' + escapeHtml(p.title) + '</p>' +
+        '<div class="ggp-product-meta"><span class="ggp-product-kva">' + p.kva + ' kVA</span>' + (p.price ? '<span class="ggp-product-price">' + escapeHtml(p.price) + '</span>' : '') + '</div>' +
+        '<div class="ggp-product-cta">View Product &rarr;</div>' +
+        '</div></a>';
+    }).join('');
+  }
+
+  /* ---------------- Start ---------------- */
+  els.startBtn.addEventListener('click', function () {
+    els.intro.hidden = true;
+    els.app.hidden = false;
+    els.app.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  renderGrid();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "GGP Power Calculator",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Product matching"
+    },
+    {
+      "type": "collection",
+      "id": "product_collection",
+      "label": "Generator collection",
+      "info": "Products in this collection are matched against the calculated kVA requirement. Only products with a value in the kVA metafield below are considered."
+    },
+    {
+      "type": "text",
+      "id": "kva_namespace",
+      "label": "kVA metafield namespace",
+      "default": "custom"
+    },
+    {
+      "type": "text",
+      "id": "kva_key",
+      "label": "kVA metafield key",
+      "default": "prime_power",
+      "info": "Together with the namespace above, this points at product.metafields.custom.prime_power (or whatever you set)."
+    },
+    {
+      "type": "header",
+      "content": "Contact"
+    },
+    {
+      "type": "url",
+      "id": "contact_url",
+      "label": "Contact page link",
+      "info": "Where the final \"Talk to Our Team\" button sends visitors."
+    },
+    {
+      "type": "header",
+      "content": "Sizing formula"
+    },
+    {
+      "type": "range",
+      "id": "power_factor",
+      "label": "Power factor",
+      "min": 0.5,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.8,
+      "info": "Used to convert total watts into kVA. 0.8 is typical for mixed loads."
+    },
+    {
+      "type": "range",
+      "id": "safety_margin",
+      "label": "Safety margin",
+      "min": 1,
+      "max": 2,
+      "step": 0.05,
+      "default": 1.3,
+      "info": "Headroom added on top of connected load, e.g. 1.3 = 30% extra capacity."
+    }
+  ],
+  "presets": [
+    {
+      "name": "GGP Power Calculator"
+    }
+  ]
+}
+{% endschema %}
