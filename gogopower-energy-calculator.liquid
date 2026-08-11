@@ -12,14 +12,15 @@
 {%- assign ggp_collection_handle = 'generator' -%}
 {%- assign ggp_kva_namespace = 'custom' -%}
 {%- assign ggp_kva_key = 'prime_power' -%}
-{%- assign ggp_brand_namespace = 'custom' -%}
-{%- assign ggp_brand_key = 'engine' -%}
 {%- assign ggp_contact_url = 'https://www.gogopower.com.au/pages/contact' -%}
 {%- assign ggp_power_factor = 0.8 -%}
 {%- assign ggp_safety_margin = 1.3 -%}
 <!--
   ggp_power_factor / ggp_safety_margin control how "Running Watts" are converted
   into a recommended kVA rating. Increase ggp_safety_margin for more headroom.
+
+  Price is NOT a metafield - it comes straight from each product's own price
+  (product.price), formatted with Shopify's "money" filter below.
 
   If your generator collection has more than 250 products, raise the "by 250"
   number in the paginate block below.
@@ -34,14 +35,13 @@
     {%- for product in ggp_collection.products -%}
       {%- assign ggp_kva_val = product.metafields[ggp_kva_namespace][ggp_kva_key] -%}
       {%- if ggp_kva_val != blank -%}
-        {%- assign ggp_brand_val = product.metafields[ggp_brand_namespace][ggp_brand_key] -%}
         {%- assign ggp_img = '' -%}
         {%- if product.featured_image -%}
           {%- assign ggp_img = product.featured_image | image_url: width: 300 -%}
         {%- endif -%}
         {%- unless ggp_first -%},{%- endunless -%}
         {%- assign ggp_first = false -%}
-        {"title": {{ product.title | json }}, "kva": {{ ggp_kva_val | json }}, "brand": {{ ggp_brand_val | default: '' | json }}, "url": {{ product.url | json }}, "image": {{ ggp_img | json }}}
+        {"title": {{ product.title | json }}, "kva": {{ ggp_kva_val | json }}, "price": {{ product.price | money | json }}, "url": {{ product.url | json }}, "image": {{ ggp_img | json }}}
       {%- endif -%}
     {%- endfor -%}
   {%- endpaginate -%}
@@ -150,6 +150,7 @@
     max-width: 960px;
     margin: 0 auto;
     box-sizing: border-box;
+    text-align: center;
   }
   #ggp-calculator *, #ggp-calculator *::before, #ggp-calculator *::after { box-sizing: border-box; }
 
@@ -168,11 +169,12 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin: 0 0 28px;
-    text-align: left;
+    text-align: center;
   }
   .ggp-step {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
     gap: 10px;
     background: var(--ggp-white);
     border: 1px solid var(--ggp-border);
@@ -209,8 +211,11 @@
     text-decoration: none;
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
-  .ggp-btn-primary { background: var(--ggp-navy); color: var(--ggp-white); }
-  .ggp-btn-primary:hover { background: var(--ggp-green); border-color: var(--ggp-green); color: var(--ggp-white); }
+  .ggp-btn-primary,
+  .ggp-btn-primary:link,
+  .ggp-btn-primary:visited { background: var(--ggp-navy); color: var(--ggp-white); }
+  .ggp-btn-primary:hover,
+  .ggp-btn-primary:focus-visible { background: var(--ggp-green); border-color: var(--ggp-green); color: var(--ggp-white); }
   .ggp-btn-outline { background: var(--ggp-white); color: var(--ggp-navy); border: 1px solid var(--ggp-black); margin: 18px 0 0; }
   .ggp-btn-outline:hover { border-color: var(--ggp-green); color: var(--ggp-green); }
   .ggp-btn-large { padding: 14px 32px; font-size: 16px; }
@@ -218,6 +223,7 @@
   /* ---- Tabs ---- */
   .ggp-tabs {
     display: flex;
+    justify-content: center;
     gap: 6px;
     overflow-x: auto;
     border-bottom: 2px solid var(--ggp-border);
@@ -243,6 +249,7 @@
   .ggp-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    justify-content: center;
     gap: 10px;
   }
   .ggp-appliance-btn {
@@ -289,6 +296,7 @@
   .ggp-custom-form {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
     margin-top: 12px;
     padding: 14px;
@@ -311,7 +319,7 @@
   .ggp-table-scroll { overflow-x: auto; }
   .ggp-table { width: 100%; border-collapse: collapse; min-width: 520px; }
   .ggp-table th {
-    text-align: left;
+    text-align: center;
     font-size: 12.5px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -324,6 +332,7 @@
     border-bottom: 1px solid var(--ggp-border);
     font-size: 14px;
     vertical-align: middle;
+    text-align: center;
   }
   .ggp-table tr:hover td { background: var(--ggp-bg-soft); }
   .ggp-table input[type="number"] {
@@ -333,7 +342,7 @@
     border-radius: 6px;
     font-size: 14px;
   }
-  .ggp-item-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .ggp-item-name { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
   .ggp-item-name .ggp-icon { width: 20px; height: 20px; color: var(--ggp-navy); flex: 0 0 auto; }
   .ggp-item-name .ggp-icon svg { width: 100%; height: 100%; }
   .ggp-remove-btn {
@@ -351,25 +360,41 @@
 
   /* ---- Summary ---- */
   .ggp-summary {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 24px;
   }
   .ggp-summary-card {
-    flex: 1 1 200px;
     border: 1px solid var(--ggp-black);
     border-radius: 10px;
     padding: 16px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 6px;
   }
   .ggp-summary-card span { font-size: 13px; color: var(--ggp-grey); }
   .ggp-summary-card strong { font-size: 24px; color: var(--ggp-navy); }
-  .ggp-summary-highlight { background: var(--ggp-navy); border-color: var(--ggp-navy); }
-  .ggp-summary-highlight span { color: #cfe0ea; }
-  .ggp-summary-highlight strong { color: var(--ggp-white); }
+  .ggp-summary-highlight {
+    grid-column: 1 / -1;
+    background: var(--ggp-navy);
+    border-color: var(--ggp-navy);
+  }
+  .ggp-summary-highlight span { color: var(--ggp-white); }
+  .ggp-summary-highlight strong {
+    color: var(--ggp-white);
+    animation: ggp-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes ggp-glow {
+    0%, 100% { text-shadow: 0 0 6px rgba(60,147,66,0.7), 0 0 14px rgba(60,147,66,0.4); }
+    50% { text-shadow: 0 0 14px rgba(60,147,66,1), 0 0 28px rgba(60,147,66,0.7); }
+  }
+  @media (max-width: 380px) {
+    .ggp-summary { grid-template-columns: 1fr; }
+    .ggp-summary-highlight { grid-column: auto; }
+  }
 
   /* ---- Product suggestions ---- */
   .ggp-results { margin-top: 30px; }
@@ -396,9 +421,10 @@
     background: var(--ggp-bg-soft);
     display: block;
   }
-  .ggp-product-body { padding: 12px 14px; }
+  .ggp-product-body { padding: 12px 14px; text-align: center; }
   .ggp-product-title { font-weight: 700; font-size: 15px; margin: 0 0 8px; color: var(--ggp-navy); }
-  .ggp-product-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ggp-grey); }
+  .ggp-product-meta { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 13px; color: var(--ggp-grey); }
+  .ggp-product-price { font-weight: 700; color: var(--ggp-navy); }
   .ggp-product-kva {
     display: inline-block;
     background: var(--ggp-green);
@@ -452,7 +478,7 @@
       return {
         title: p.title || 'Gogopower Generator',
         kva: parseFloat(p.kva) || 0,
-        brand: p.brand || '',
+        price: p.price || '',
         url: p.url || '#',
         image: p.image || ''
       };
@@ -738,7 +764,7 @@
         img +
         '<div class="ggp-product-body">' +
         '<p class="ggp-product-title">' + escapeHtml(p.title) + '</p>' +
-        '<div class="ggp-product-meta"><span class="ggp-product-kva">' + p.kva + ' kVA</span>' + (p.brand ? '<span>' + escapeHtml(p.brand) + '</span>' : '') + '</div>' +
+        '<div class="ggp-product-meta"><span class="ggp-product-kva">' + p.kva + ' kVA</span>' + (p.price ? '<span class="ggp-product-price">' + escapeHtml(p.price) + '</span>' : '') + '</div>' +
         '<div class="ggp-product-cta">View Product &rarr;</div>' +
         '</div></a>';
     }).join('');
