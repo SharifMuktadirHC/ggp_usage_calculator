@@ -314,38 +314,36 @@
 
   /* ---- List / table ---- */
   .ggp-list-wrap { margin-top: 30px; }
-  .ggp-h3 {
-    color: var(--ggp-white);
-    background: var(--ggp-navy);
-    font-size: 19px;
-    margin: 0 0 14px;
-    padding: 10px 16px;
-    border-radius: 8px;
-  }
+  .ggp-h3 { color: var(--ggp-navy); font-size: 19px; margin: 0 0 10px; }
   .ggp-empty-msg { color: var(--ggp-grey); font-size: 14px; }
-  .ggp-table-scroll { overflow-x: auto; }
-  .ggp-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0 auto; }
+  .ggp-table-scroll { overflow-x: auto; width: 100%; }
+  #ggp-calculator .ggp-table {
+    width: 100% !important;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 0 auto !important;
+  }
   .ggp-table th:nth-child(1), .ggp-table td:nth-child(1) { width: 32%; }
   .ggp-table th:nth-child(2), .ggp-table td:nth-child(2) { width: 12%; }
   .ggp-table th:nth-child(3), .ggp-table td:nth-child(3) { width: 15%; }
   .ggp-table th:nth-child(4), .ggp-table td:nth-child(4) { width: 15%; }
   .ggp-table th:nth-child(5), .ggp-table td:nth-child(5) { width: 15%; }
   .ggp-table th:nth-child(6), .ggp-table td:nth-child(6) { width: 11%; }
-  .ggp-table th {
-    text-align: center;
+  #ggp-calculator .ggp-table th {
+    text-align: center !important;
     font-size: 12.5px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--ggp-white);
-    background: var(--ggp-navy);
+    color: var(--ggp-white) !important;
+    background: var(--ggp-navy) !important;
     padding: 10px 6px;
   }
-  .ggp-table td {
+  #ggp-calculator .ggp-table td {
     padding: 8px 6px;
     border-bottom: 1px solid var(--ggp-border);
     font-size: 14px;
     vertical-align: middle;
-    text-align: center;
+    text-align: center !important;
     word-break: break-word;
   }
   .ggp-table tr:hover td { background: var(--ggp-bg-soft); }
