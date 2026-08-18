@@ -1,0 +1,1069 @@
+<!--
+  Gogopower Generator & Battery Sizing Toolkit
+  ===============================================
+  A suite of standard industry sizing/conversion calculators, separate from
+  (and complementary to) the appliance-based Power Usage Calculator.
+
+  HOW TO INSTALL
+  1. Shopify Admin -> Online Store -> Themes -> Customize
+  2. Add a "Custom Liquid" section/block on the page you want this on
+  3. Paste this ENTIRE file into that Custom Liquid box and Save
+  4. Configure the settings below to match your store
+
+  CONFIGURATION - edit the values in this block only
+-->
+{%- assign ggpt_collection_handle = 'generator' -%}
+{%- assign ggpt_kva_namespace = 'custom' -%}
+{%- assign ggpt_kva_key = 'prime_power' -%}
+{%- assign ggpt_contact_url = 'https://www.gogopower.com.au/pages/contact' -%}
+<!--
+  If your generator collection has more than 250 products, raise the "by 250"
+  number in the paginate block below.
+-->
+
+{%- assign ggpt_collection = collections[ggpt_collection_handle] -%}
+<script type="application/json" id="ggpt-product-data">
+[
+{%- if ggpt_collection -%}
+  {%- paginate ggpt_collection.products by 250 -%}
+    {%- assign ggpt_first = true -%}
+    {%- for product in ggpt_collection.products -%}
+      {%- assign ggpt_kva_val = product.metafields[ggpt_kva_namespace][ggpt_kva_key] -%}
+      {%- if ggpt_kva_val != blank -%}
+        {%- unless ggpt_first -%},{%- endunless -%}
+        {%- assign ggpt_first = false -%}
+        {"title": {{ product.title | json }}, "kva": {{ ggpt_kva_val | json }}, "price": {{ product.price | money | json }}, "url": {{ product.url | json }}}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endpaginate -%}
+{%- endif -%}
+]
+</script>
+
+<div id="ggpt-calculator" class="ggpt-calc">
+
+  <!-- ============ INTRO ============ -->
+  <div class="ggpt-intro">
+    <h2 class="ggpt-title">Generator &amp; Battery Sizing Toolkit</h2>
+    <p class="ggpt-subtitle">Six standard industry calculators engineers and buyers use to spec, size and budget for generators and battery backup systems.</p>
+    <div class="ggpt-steps">
+      <div class="ggpt-step"><span class="ggpt-step-num">1</span><span>Pick the calculator you need below</span></div>
+      <div class="ggpt-step"><span class="ggpt-step-num">2</span><span>Enter your figures - results update live</span></div>
+      <div class="ggpt-step"><span class="ggpt-step-num">3</span><span>Where relevant, see matching Gogopower generators</span></div>
+      <div class="ggpt-step"><span class="ggpt-step-num">4</span><span>Not sure? Talk to our team at the bottom</span></div>
+    </div>
+  </div>
+
+  <!-- ============ TOOL TABS ============ -->
+  <div class="ggpt-tabs" role="tablist" id="ggpt-tabs">
+    <button type="button" class="ggpt-tab active" data-tool="converter" role="tab" aria-selected="true">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h14M13 4l4 4-4 4"/><path d="M21 16H7M11 12l-4 4 4 4"/></svg></span><span>kVA / kW / Amps</span>
+    </button>
+    <button type="button" class="ggpt-tab" data-tool="motor" role="tab" aria-selected="false">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M13 7l-4 6h3l-1 4 4-6h-3l1-4z" fill="currentColor" stroke="none"/></svg></span><span>Motor Starting</span>
+    </button>
+    <button type="button" class="ggpt-tab" data-tool="fuel" role="tab" aria-selected="false">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M3 21h12"/><path d="M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0v-6l-2-2"/><line x1="6" y1="6" x2="12" y2="6"/></svg></span><span>Fuel &amp; Running Cost</span>
+    </button>
+    <button type="button" class="ggpt-tab" data-tool="cable" role="tab" aria-selected="false">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8z"/><path d="M12 18v4"/></svg></span><span>Cable &amp; Voltage Drop</span>
+    </button>
+    <button type="button" class="ggpt-tab" data-tool="battery" role="tab" aria-selected="false">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="17" height="10" rx="1.5"/><line x1="21" y1="10" x2="21" y2="14"/><path d="M8 9v6M12 9v6"/></svg></span><span>Battery Backup</span>
+    </button>
+    <button type="button" class="ggpt-tab" data-tool="derate" role="tab" aria-selected="false">
+      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19l6-10 4 6 2-3 6 7z"/><circle cx="9" cy="7" r="1.3"/></svg></span><span>Altitude &amp; Temp Derating</span>
+    </button>
+  </div>
+
+  <!-- ============ PANEL: CONVERTER ============ -->
+  <div class="ggpt-panel" data-tool-panel="converter">
+    <h3 class="ggpt-tool-title">Power Conversion Calculator</h3>
+    <p class="ggpt-tool-desc">Convert between apparent power (kVA), real power (kW) and current (Amps) using your power factor, voltage and phase - the standard formulas used to spec generators, cables and switchgear.</p>
+
+    <div class="ggpt-field-grid">
+      <label class="ggpt-field">I know my...
+        <select id="ggpt-conv-mode">
+          <option value="kva">kVA</option>
+          <option value="kw">kW</option>
+          <option value="amps">Amps</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Value
+        <input type="number" id="ggpt-conv-value" min="0" step="0.1" value="20">
+      </label>
+      <label class="ggpt-field">Power Factor
+        <input type="number" id="ggpt-conv-pf" min="0.1" max="1" step="0.05" value="0.8">
+      </label>
+      <label class="ggpt-field">Phase
+        <select id="ggpt-conv-phase">
+          <option value="1">Single Phase</option>
+          <option value="3" selected>Three Phase</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Voltage (V)
+        <input type="number" id="ggpt-conv-voltage" min="1" step="1" value="400">
+      </label>
+    </div>
+
+    <div class="ggpt-summary">
+      <div class="ggpt-summary-card">
+        <span>Apparent Power</span>
+        <strong id="ggpt-conv-kva">0 kVA</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Real Power</span>
+        <strong id="ggpt-conv-kw">0 kW</strong>
+      </div>
+      <div class="ggpt-summary-card ggpt-summary-highlight">
+        <span>Current</span>
+        <strong id="ggpt-conv-amps">0 A</strong>
+      </div>
+    </div>
+
+    <div class="ggpt-results" id="ggpt-conv-results" hidden>
+      <h4 class="ggpt-h4">Suggested Gogopower Generators</h4>
+      <div class="ggpt-products" id="ggpt-conv-products"></div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: MOTOR STARTING ============ -->
+  <div class="ggpt-panel" data-tool-panel="motor" hidden>
+    <h3 class="ggpt-tool-title">Motor Starting (Surge) Calculator</h3>
+    <p class="ggpt-tool-desc">Motors draw far more current when starting than when running. The #1 generator sizing mistake is sizing against running load only - always check the starting (surge) load too.</p>
+
+    <div class="ggpt-field-grid">
+      <label class="ggpt-field">Motor Rating
+        <input type="number" id="ggpt-motor-value" min="0" step="0.1" value="15">
+      </label>
+      <label class="ggpt-field">Unit
+        <select id="ggpt-motor-unit">
+          <option value="kw">kW</option>
+          <option value="hp">HP</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Starting Method
+        <select id="ggpt-motor-method">
+          <option value="6">Direct-On-Line (~6x FLA)</option>
+          <option value="3">Star-Delta (~3x FLA)</option>
+          <option value="3.5">Soft Starter (~3-4x FLA)</option>
+          <option value="1.2">Variable Frequency Drive (~1.2x FLA)</option>
+          <option value="custom">Custom multiplier</option>
+        </select>
+      </label>
+      <label class="ggpt-field" id="ggpt-motor-custom-wrap" hidden>Custom Multiplier
+        <input type="number" id="ggpt-motor-custom" min="1" step="0.1" value="4">
+      </label>
+      <label class="ggpt-field">Power Factor
+        <input type="number" id="ggpt-motor-pf" min="0.1" max="1" step="0.05" value="0.8">
+      </label>
+      <label class="ggpt-field">Identical Motors Starting Together
+        <input type="number" id="ggpt-motor-qty" min="1" step="1" value="1">
+      </label>
+    </div>
+
+    <div class="ggpt-summary">
+      <div class="ggpt-summary-card">
+        <span>Running Load</span>
+        <strong id="ggpt-motor-running">0 kVA</strong>
+      </div>
+      <div class="ggpt-summary-card ggpt-summary-highlight">
+        <span>Starting (Surge) Load</span>
+        <strong id="ggpt-motor-starting">0 kVA</strong>
+      </div>
+    </div>
+    <p class="ggpt-note">Assumes all selected motors start at the same instant (worst case). If they start one after another, only the single largest motor's starting kVA needs to be added on top of everything else already running.</p>
+
+    <div class="ggpt-results" id="ggpt-motor-results" hidden>
+      <h4 class="ggpt-h4">Suggested Gogopower Generators (sized for starting load)</h4>
+      <div class="ggpt-products" id="ggpt-motor-products"></div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: FUEL & RUNNING COST ============ -->
+  <div class="ggpt-panel" data-tool-panel="fuel" hidden>
+    <h3 class="ggpt-tool-title">Fuel Consumption &amp; Running Cost Calculator</h3>
+    <p class="ggpt-tool-desc">Estimate diesel burn and running cost for budgeting. This uses a typical average specific fuel consumption figure - always check the actual fuel curve on your generator's spec sheet for a precise figure.</p>
+
+    <div class="ggpt-field-grid">
+      <label class="ggpt-field">Generator Rated Output (kW)
+        <input type="number" id="ggpt-fuel-kw" min="0" step="1" value="80">
+      </label>
+      <label class="ggpt-field">Load (%)
+        <input type="number" id="ggpt-fuel-load" min="1" max="100" step="1" value="75">
+      </label>
+      <label class="ggpt-field">Fuel Price ($/L)
+        <input type="number" id="ggpt-fuel-price" min="0" step="0.05" value="2.00">
+      </label>
+      <label class="ggpt-field">Hours per Day
+        <input type="number" id="ggpt-fuel-hours" min="0" max="24" step="0.5" value="8">
+      </label>
+      <label class="ggpt-field">Days per Week
+        <input type="number" id="ggpt-fuel-days" min="1" max="7" step="1" value="5">
+      </label>
+    </div>
+
+    <div class="ggpt-summary">
+      <div class="ggpt-summary-card">
+        <span>Fuel Burn Rate</span>
+        <strong id="ggpt-fuel-rate">0 L/hr</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Fuel per Week</span>
+        <strong id="ggpt-fuel-week-l">0 L</strong>
+      </div>
+      <div class="ggpt-summary-card ggpt-summary-highlight">
+        <span>Running Cost per Week</span>
+        <strong id="ggpt-fuel-week-cost">$0</strong>
+      </div>
+    </div>
+
+    <div class="ggpt-mini-stats">
+      <div class="ggpt-mini-stat"><span>Cost / Month</span><strong id="ggpt-fuel-month-cost">$0</strong></div>
+      <div class="ggpt-mini-stat"><span>Cost / Year</span><strong id="ggpt-fuel-year-cost">$0</strong></div>
+      <div class="ggpt-mini-stat"><span>Est. CO&#8322; / Year</span><strong id="ggpt-fuel-co2">0 kg</strong></div>
+    </div>
+    <p class="ggpt-note">Estimate only, based on ~0.30 L/kWh average specific fuel consumption and 2.68 kg CO&#8322;/L for diesel. Actual consumption varies by generator model, load profile, altitude and maintenance condition.</p>
+  </div>
+
+  <!-- ============ PANEL: CABLE & VOLTAGE DROP ============ -->
+  <div class="ggpt-panel" data-tool-panel="cable" hidden>
+    <h3 class="ggpt-tool-title">Cable Size &amp; Voltage Drop Calculator</h3>
+    <p class="ggpt-tool-desc">Estimate the minimum copper cable size to keep voltage drop within your target, based on typical published mV/A/m figures.</p>
+
+    <div class="ggpt-field-grid">
+      <label class="ggpt-field">Load Current (A)
+        <input type="number" id="ggpt-cable-amps" min="0" step="1" value="100">
+      </label>
+      <label class="ggpt-field">Cable Length, One-Way (m)
+        <input type="number" id="ggpt-cable-length" min="0" step="1" value="30">
+      </label>
+      <label class="ggpt-field">Phase
+        <select id="ggpt-cable-phase">
+          <option value="1">Single Phase</option>
+          <option value="3" selected>Three Phase</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Supply Voltage (V)
+        <input type="number" id="ggpt-cable-voltage" min="1" step="1" value="400">
+      </label>
+      <label class="ggpt-field">Max Allowable Drop (%)
+        <input type="number" id="ggpt-cable-maxdrop" min="1" max="10" step="0.5" value="5">
+      </label>
+    </div>
+
+    <div class="ggpt-summary">
+      <div class="ggpt-summary-card ggpt-summary-highlight">
+        <span>Recommended Min. Cable Size</span>
+        <strong id="ggpt-cable-size">- mm&sup2;</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Voltage Drop at That Size</span>
+        <strong id="ggpt-cable-drop-v">0 V</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Drop as % of Supply</span>
+        <strong id="ggpt-cable-drop-pct">0%</strong>
+      </div>
+    </div>
+    <p class="ggpt-note">Indicative only, based on typical mV/A/m figures for PVC-insulated multicore copper cable. Final cable selection must be verified against AS/NZS 3008 for your exact cable type and installation method, and signed off by a licensed electrician.</p>
+  </div>
+
+  <!-- ============ PANEL: BATTERY BACKUP ============ -->
+  <div class="ggpt-panel" data-tool-panel="battery" hidden>
+    <h3 class="ggpt-tool-title">Battery Backup &amp; Bank Sizing Calculator</h3>
+    <p class="ggpt-tool-desc">Work out how long a battery bank will last, or how big a bank you need for a target runtime.</p>
+
+    <div class="ggpt-toggle-group" id="ggpt-battery-mode">
+      <button type="button" class="ggpt-toggle-btn active" data-mode="runtime">How long will my battery last?</button>
+      <button type="button" class="ggpt-toggle-btn" data-mode="size">What size battery bank do I need?</button>
+    </div>
+
+    <div class="ggpt-field-grid" data-battery-mode-fields="runtime">
+      <label class="ggpt-field">Battery Bank Capacity (Ah)
+        <input type="number" id="ggpt-batt-ah" min="0" step="1" value="200">
+      </label>
+      <label class="ggpt-field">System Voltage (V)
+        <select id="ggpt-batt-voltage-r">
+          <option value="12">12V</option>
+          <option value="24" selected>24V</option>
+          <option value="48">48V</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Depth of Discharge (%)
+        <input type="number" id="ggpt-batt-dod-r" min="1" max="100" step="1" value="50">
+      </label>
+      <label class="ggpt-field">Inverter Efficiency (%)
+        <input type="number" id="ggpt-batt-eff-r" min="1" max="100" step="1" value="90">
+      </label>
+      <label class="ggpt-field">Load (W)
+        <input type="number" id="ggpt-batt-load-r" min="0" step="10" value="500">
+      </label>
+    </div>
+
+    <div class="ggpt-field-grid" data-battery-mode-fields="size" hidden>
+      <label class="ggpt-field">Load (W)
+        <input type="number" id="ggpt-batt-load-s" min="0" step="10" value="500">
+      </label>
+      <label class="ggpt-field">Desired Backup Time (hours)
+        <input type="number" id="ggpt-batt-hours-s" min="0" step="0.5" value="4">
+      </label>
+      <label class="ggpt-field">System Voltage (V)
+        <select id="ggpt-batt-voltage-s">
+          <option value="12">12V</option>
+          <option value="24" selected>24V</option>
+          <option value="48">48V</option>
+        </select>
+      </label>
+      <label class="ggpt-field">Depth of Discharge (%)
+        <input type="number" id="ggpt-batt-dod-s" min="1" max="100" step="1" value="50">
+      </label>
+      <label class="ggpt-field">Inverter Efficiency (%)
+        <input type="number" id="ggpt-batt-eff-s" min="1" max="100" step="1" value="90">
+      </label>
+      <label class="ggpt-field">Single Battery Rating (Ah)
+        <input type="number" id="ggpt-batt-unit-ah" min="1" step="1" value="100">
+      </label>
+    </div>
+
+    <div class="ggpt-summary" data-battery-mode-out="runtime">
+      <div class="ggpt-summary-card ggpt-summary-highlight" style="grid-column:1/-1;">
+        <span>Estimated Runtime</span>
+        <strong id="ggpt-batt-runtime">0 hrs</strong>
+      </div>
+    </div>
+    <div class="ggpt-summary" data-battery-mode-out="size" hidden>
+      <div class="ggpt-summary-card">
+        <span>Required Bank Capacity</span>
+        <strong id="ggpt-batt-required-ah">0 Ah</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Total Bank Energy</span>
+        <strong id="ggpt-batt-kwh">0 kWh</strong>
+      </div>
+      <div class="ggpt-summary-card ggpt-summary-highlight">
+        <span>Batteries Needed</span>
+        <strong id="ggpt-batt-count">0</strong>
+      </div>
+    </div>
+    <p class="ggpt-note">Lead-acid batteries are typically limited to ~50% depth of discharge for cycle life; lithium (LiFePO4) can often go to 80-90% - check your battery's datasheet.</p>
+  </div>
+
+  <!-- ============ PANEL: ALTITUDE & TEMP DERATING ============ -->
+  <div class="ggpt-panel" data-tool-panel="derate" hidden>
+    <h3 class="ggpt-tool-title">Altitude &amp; Temperature Derating Calculator</h3>
+    <p class="ggpt-tool-desc">Diesel generators lose output at altitude and in high ambient heat. Work out the nameplate rating you need to buy so the site still gets the power you actually require.</p>
+
+    <div class="ggpt-field-grid">
+      <label class="ggpt-field">Required Output On Site (kVA)
+        <input type="number" id="ggpt-derate-target" min="0" step="1" value="100">
+      </label>
+      <label class="ggpt-field">Site Altitude (m above sea level)
+        <input type="number" id="ggpt-derate-altitude" min="0" step="10" value="1500">
+      </label>
+      <label class="ggpt-field">Site Ambient Temperature (&deg;C)
+        <input type="number" id="ggpt-derate-temp" min="-10" step="1" value="45">
+      </label>
+    </div>
+
+    <div class="ggpt-summary">
+      <div class="ggpt-summary-card">
+        <span>Altitude Derate</span>
+        <strong id="ggpt-derate-alt-pct">0%</strong>
+      </div>
+      <div class="ggpt-summary-card">
+        <span>Temperature Derate</span>
+        <strong id="ggpt-derate-temp-pct">0%</strong>
+      </div>
+      <div class="ggpt-summary-card ggpt-summary-highlight" style="grid-column:1/-1;">
+        <span>Nameplate Rating You Need to Buy</span>
+        <strong id="ggpt-derate-required">0 kVA</strong>
+      </div>
+    </div>
+    <p class="ggpt-note">Rule of thumb: roughly -1% capacity per 100m above 1000m altitude, and roughly -1% per &deg;C above 40&deg;C ambient. Every engine has its own derating curve - always confirm against the manufacturer's specific data sheet before finalising a purchase.</p>
+
+    <div class="ggpt-results" id="ggpt-derate-results" hidden>
+      <h4 class="ggpt-h4">Suggested Gogopower Generators (nameplate-sized for your site)</h4>
+      <div class="ggpt-products" id="ggpt-derate-products"></div>
+    </div>
+  </div>
+
+  <!-- ============ CONTACT CTA ============ -->
+  <div class="ggpt-contact-cta">
+    <p>Need help interpreting these numbers, or a formal specification?</p>
+    <a href="{{ ggpt_contact_url }}" class="ggpt-btn ggpt-btn-primary ggpt-btn-large">Talk to Our Team</a>
+  </div>
+</div>
+
+<style>
+  #ggpt-calculator {
+    --ggpt-navy: #032B44;
+    --ggpt-green: #3C9342;
+    --ggpt-white: #FFFFFF;
+    --ggpt-black: #000000;
+    --ggpt-grey: #6b7680;
+    --ggpt-border: #d8dde1;
+    --ggpt-bg-soft: #f5f7f8;
+    font-family: inherit;
+    color: var(--ggpt-black);
+    background: var(--ggpt-white);
+    max-width: 960px;
+    margin: 10px auto 30px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  #ggpt-calculator *, #ggpt-calculator *::before, #ggpt-calculator *::after { box-sizing: border-box; }
+
+  /* ---- Intro ---- */
+  .ggpt-intro {
+    border: 1px solid var(--ggpt-black);
+    border-radius: 12px;
+    padding: 28px 24px;
+    text-align: center;
+    background: var(--ggpt-white);
+  }
+  .ggpt-title { color: var(--ggpt-navy); font-size: 26px; margin: 0 0 8px; font-weight: 700; }
+  .ggpt-subtitle { color: var(--ggpt-black); font-size: 15px; margin: 0 0 22px; }
+  .ggpt-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    text-align: center;
+  }
+  .ggpt-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--ggpt-bg-soft);
+    border: 1px solid var(--ggpt-border);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+  }
+  .ggpt-step-num {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ggpt-green);
+    color: var(--ggpt-white);
+    font-weight: 700;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Buttons ---- */
+  .ggpt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--ggpt-navy);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  #ggpt-calculator .ggpt-btn-primary,
+  #ggpt-calculator .ggpt-btn-primary:link,
+  #ggpt-calculator .ggpt-btn-primary:visited { background: var(--ggpt-navy); color: var(--ggpt-white) !important; }
+  #ggpt-calculator .ggpt-btn-primary:hover,
+  #ggpt-calculator .ggpt-btn-primary:focus-visible { background: var(--ggpt-green); border-color: var(--ggpt-green); color: var(--ggpt-white) !important; }
+  .ggpt-btn-large { padding: 14px 32px; font-size: 16px; }
+
+  /* ---- Tool Tabs ---- */
+  .ggpt-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 26px 0 24px;
+  }
+  .ggpt-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ggpt-white);
+    border: 1px solid var(--ggpt-black);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ggpt-navy);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .ggpt-tab-icon { width: 18px; height: 18px; flex: 0 0 auto; color: var(--ggpt-navy); }
+  .ggpt-tab-icon svg { width: 100%; height: 100%; }
+  #ggpt-calculator .ggpt-tab:hover {
+    border-color: var(--ggpt-green);
+    color: var(--ggpt-navy) !important;
+    background: #eef6ef;
+  }
+  #ggpt-calculator .ggpt-tab.active {
+    background: var(--ggpt-navy);
+    border-color: var(--ggpt-navy);
+    color: var(--ggpt-white) !important;
+  }
+  #ggpt-calculator .ggpt-tab.active .ggpt-tab-icon { color: var(--ggpt-white); }
+
+  /* ---- Tool panels ---- */
+  .ggpt-panel {
+    border: 1px solid var(--ggpt-black);
+    border-radius: 12px;
+    padding: 26px 22px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .ggpt-tool-title { color: var(--ggpt-navy); font-size: 20px; margin: 0 0 8px; }
+  .ggpt-tool-desc { color: var(--ggpt-grey); font-size: 14px; margin: 0 0 22px; max-width: 640px; margin-left: auto; margin-right: auto; }
+  .ggpt-h4 { color: var(--ggpt-navy); font-size: 16px; margin: 0 0 12px; }
+
+  /* ---- Field grid ---- */
+  .ggpt-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+  .ggpt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ggpt-navy);
+  }
+  .ggpt-field input,
+  .ggpt-field select {
+    padding: 10px;
+    border: 1px solid var(--ggpt-black);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--ggpt-black);
+    background: var(--ggpt-white);
+  }
+  .ggpt-field input:focus,
+  .ggpt-field select:focus { outline: 2px solid var(--ggpt-green); outline-offset: 1px; }
+
+  /* ---- Toggle group (battery mode) ---- */
+  .ggpt-toggle-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .ggpt-toggle-btn {
+    background: var(--ggpt-white);
+    border: 1px solid var(--ggpt-black);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ggpt-navy);
+    cursor: pointer;
+  }
+  #ggpt-calculator .ggpt-toggle-btn:hover { border-color: var(--ggpt-green); color: var(--ggpt-navy) !important; }
+  #ggpt-calculator .ggpt-toggle-btn.active { background: var(--ggpt-navy); border-color: var(--ggpt-navy); color: var(--ggpt-white) !important; }
+
+  /* ---- Summary cards ---- */
+  .ggpt-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .ggpt-summary-card {
+    border: 1px solid var(--ggpt-black);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .ggpt-summary-card span { font-size: 12.5px; color: var(--ggpt-grey); }
+  .ggpt-summary-card strong { font-size: 22px; color: var(--ggpt-navy); word-break: break-word; }
+  .ggpt-summary-highlight { background: var(--ggpt-navy); border-color: var(--ggpt-navy); }
+  .ggpt-summary-highlight span { color: var(--ggpt-white); }
+  .ggpt-summary-highlight strong {
+    color: var(--ggpt-white);
+    animation: ggpt-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes ggpt-glow {
+    0%, 100% { text-shadow: 0 0 6px rgba(60,147,66,0.7), 0 0 14px rgba(60,147,66,0.4); }
+    50% { text-shadow: 0 0 14px rgba(60,147,66,1), 0 0 28px rgba(60,147,66,0.7); }
+  }
+
+  /* ---- Mini stats row (fuel panel) ---- */
+  .ggpt-mini-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin: 18px 0 10px;
+  }
+  .ggpt-mini-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ggpt-mini-stat span { font-size: 12px; color: var(--ggpt-grey); }
+  .ggpt-mini-stat strong { font-size: 17px; color: var(--ggpt-navy); }
+
+  .ggpt-note { font-size: 12.5px; color: var(--ggpt-grey); margin-top: 16px; max-width: 680px; margin-left: auto; margin-right: auto; }
+
+  /* ---- Suggested products ---- */
+  .ggpt-results { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--ggpt-border); }
+  .ggpt-products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .ggpt-product-card {
+    display: block;
+    border: 1px solid var(--ggpt-black);
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--ggpt-black);
+    background: var(--ggpt-white);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  #ggpt-calculator .ggpt-product-card:hover { border-color: var(--ggpt-green); box-shadow: 0 4px 14px rgba(3,43,68,0.12); }
+  .ggpt-product-body { padding: 14px; text-align: center; }
+  .ggpt-product-title { font-weight: 700; font-size: 14.5px; margin: 0 0 8px; color: var(--ggpt-navy); }
+  .ggpt-product-meta { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ggpt-grey); }
+  .ggpt-product-kva {
+    display: inline-block;
+    background: var(--ggpt-green);
+    color: var(--ggpt-white);
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .ggpt-product-price { font-weight: 700; color: var(--ggpt-navy); }
+  .ggpt-product-cta { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--ggpt-green); }
+
+  /* ---- Contact CTA ---- */
+  .ggpt-contact-cta {
+    padding: 26px;
+    border: 1px solid var(--ggpt-black);
+    border-radius: 10px;
+    background: var(--ggpt-bg-soft);
+    text-align: center;
+  }
+  .ggpt-contact-cta p { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 720px) {
+    .ggpt-steps { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .ggpt-steps { grid-template-columns: 1fr; }
+    .ggpt-title { font-size: 21px; }
+    .ggpt-panel { padding: 20px 14px; }
+    .ggpt-field-grid { grid-template-columns: 1fr 1fr; }
+    .ggpt-summary { grid-template-columns: 1fr 1fr; }
+    .ggpt-summary-card strong { font-size: 18px; }
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var root = document.getElementById('ggpt-calculator');
+  if (!root) return;
+
+  /* ---------------- Product data ---------------- */
+  var PRODUCTS = [];
+  try {
+    var dataEl = document.getElementById('ggpt-product-data');
+    PRODUCTS = JSON.parse((dataEl && dataEl.textContent) || '[]').map(function (p) {
+      return {
+        title: p.title || 'Gogopower Generator',
+        kva: parseFloat(p.kva) || 0,
+        price: p.price || '',
+        url: p.url || '#'
+      };
+    }).filter(function (p) { return p.kva > 0; });
+  } catch (e) { PRODUCTS = []; }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderProductSuggestions(resultsEl, gridEl, requiredKva) {
+    if (!requiredKva || requiredKva <= 0 || isNaN(requiredKva)) {
+      resultsEl.hidden = true;
+      return;
+    }
+    resultsEl.hidden = false;
+
+    var matches = PRODUCTS.filter(function (p) { return p.kva >= requiredKva; })
+      .sort(function (a, b) { return a.kva - b.kva; })
+      .slice(0, 3);
+
+    if (matches.length === 0) {
+      matches = PRODUCTS.slice().sort(function (a, b) { return b.kva - a.kva; }).slice(0, 3);
+    }
+
+    if (matches.length === 0) {
+      gridEl.innerHTML = '<p class="ggpt-note">No matching products found in the connected collection.</p>';
+      return;
+    }
+
+    gridEl.innerHTML = matches.map(function (p) {
+      return '<a class="ggpt-product-card" href="' + escapeHtml(p.url) + '">' +
+        '<div class="ggpt-product-body">' +
+        '<p class="ggpt-product-title">' + escapeHtml(p.title) + '</p>' +
+        '<div class="ggpt-product-meta"><span class="ggpt-product-kva">' + p.kva + ' kVA</span>' + (p.price ? '<span class="ggpt-product-price">' + escapeHtml(p.price) + '</span>' : '') + '</div>' +
+        '<div class="ggpt-product-cta">View Product &rarr;</div>' +
+        '</div></a>';
+    }).join('');
+  }
+
+  /* ---------------- Tabs ---------------- */
+  var tabs = document.getElementById('ggpt-tabs');
+  var panels = Array.prototype.slice.call(root.querySelectorAll('.ggpt-panel'));
+  tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ggpt-tab');
+    if (!btn) return;
+    var tool = btn.getAttribute('data-tool');
+    Array.prototype.forEach.call(tabs.querySelectorAll('.ggpt-tab'), function (t) {
+      var isActive = t === btn;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    panels.forEach(function (p) {
+      p.hidden = p.getAttribute('data-tool-panel') !== tool;
+    });
+  });
+
+  /* ================= CONVERTER ================= */
+  (function () {
+    var mode = document.getElementById('ggpt-conv-mode');
+    var value = document.getElementById('ggpt-conv-value');
+    var pf = document.getElementById('ggpt-conv-pf');
+    var phase = document.getElementById('ggpt-conv-phase');
+    var voltage = document.getElementById('ggpt-conv-voltage');
+    var outKva = document.getElementById('ggpt-conv-kva');
+    var outKw = document.getElementById('ggpt-conv-kw');
+    var outAmps = document.getElementById('ggpt-conv-amps');
+    var results = document.getElementById('ggpt-conv-results');
+    var grid = document.getElementById('ggpt-conv-products');
+
+    phase.addEventListener('change', function () {
+      voltage.value = phase.value === '1' ? 230 : 400;
+      compute();
+    });
+
+    function compute() {
+      var v = parseFloat(value.value) || 0;
+      var pfVal = Math.min(1, Math.max(0.1, parseFloat(pf.value) || 0.8));
+      var ph = parseFloat(phase.value) || 3;
+      var volt = parseFloat(voltage.value) || (ph === 1 ? 230 : 400);
+
+      var kva;
+      if (mode.value === 'kva') {
+        kva = v;
+      } else if (mode.value === 'kw') {
+        kva = pfVal > 0 ? v / pfVal : 0;
+      } else {
+        kva = ph === 1 ? (v * volt) / 1000 : (v * volt * Math.sqrt(3)) / 1000;
+      }
+      var kw = kva * pfVal;
+      var amps = ph === 1 ? (kva * 1000) / volt : (kva * 1000) / (volt * Math.sqrt(3));
+
+      outKva.textContent = kva.toFixed(2) + ' kVA';
+      outKw.textContent = kw.toFixed(2) + ' kW';
+      outAmps.textContent = amps.toFixed(1) + ' A';
+
+      renderProductSuggestions(results, grid, kva);
+    }
+
+    [mode, value, pf, phase, voltage].forEach(function (el) {
+      el.addEventListener('input', compute);
+      el.addEventListener('change', compute);
+    });
+    compute();
+  })();
+
+  /* ================= MOTOR STARTING ================= */
+  (function () {
+    var val = document.getElementById('ggpt-motor-value');
+    var unit = document.getElementById('ggpt-motor-unit');
+    var method = document.getElementById('ggpt-motor-method');
+    var customWrap = document.getElementById('ggpt-motor-custom-wrap');
+    var customMult = document.getElementById('ggpt-motor-custom');
+    var pf = document.getElementById('ggpt-motor-pf');
+    var qty = document.getElementById('ggpt-motor-qty');
+    var outRunning = document.getElementById('ggpt-motor-running');
+    var outStarting = document.getElementById('ggpt-motor-starting');
+    var results = document.getElementById('ggpt-motor-results');
+    var grid = document.getElementById('ggpt-motor-products');
+
+    method.addEventListener('change', function () {
+      customWrap.hidden = method.value !== 'custom';
+      compute();
+    });
+
+    function compute() {
+      var v = parseFloat(val.value) || 0;
+      var kw = unit.value === 'hp' ? v * 0.746 : v;
+      var pfVal = Math.min(1, Math.max(0.1, parseFloat(pf.value) || 0.8));
+      var q = Math.max(1, parseInt(qty.value, 10) || 1);
+      var multiplier = method.value === 'custom' ? (parseFloat(customMult.value) || 1) : parseFloat(method.value);
+
+      var runningKva = pfVal > 0 ? (kw / pfVal) : 0;
+      var startingKva = runningKva * multiplier * q;
+      var totalRunningKva = runningKva * q;
+
+      outRunning.textContent = totalRunningKva.toFixed(2) + ' kVA';
+      outStarting.textContent = startingKva.toFixed(2) + ' kVA';
+
+      renderProductSuggestions(results, grid, startingKva);
+    }
+
+    [val, unit, method, customMult, pf, qty].forEach(function (el) {
+      el.addEventListener('input', compute);
+      el.addEventListener('change', compute);
+    });
+    compute();
+  })();
+
+  /* ================= FUEL & RUNNING COST ================= */
+  (function () {
+    var kwEl = document.getElementById('ggpt-fuel-kw');
+    var loadEl = document.getElementById('ggpt-fuel-load');
+    var priceEl = document.getElementById('ggpt-fuel-price');
+    var hoursEl = document.getElementById('ggpt-fuel-hours');
+    var daysEl = document.getElementById('ggpt-fuel-days');
+    var outRate = document.getElementById('ggpt-fuel-rate');
+    var outWeekL = document.getElementById('ggpt-fuel-week-l');
+    var outWeekCost = document.getElementById('ggpt-fuel-week-cost');
+    var outMonthCost = document.getElementById('ggpt-fuel-month-cost');
+    var outYearCost = document.getElementById('ggpt-fuel-year-cost');
+    var outCo2 = document.getElementById('ggpt-fuel-co2');
+
+    var SFC = 0.30; // L per kWh, typical average
+    var CO2_PER_L = 2.68; // kg CO2 per litre diesel
+
+    function fmtMoney(n) {
+      return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function compute() {
+      var kw = parseFloat(kwEl.value) || 0;
+      var loadPct = Math.min(100, Math.max(0, parseFloat(loadEl.value) || 0));
+      var price = parseFloat(priceEl.value) || 0;
+      var hours = parseFloat(hoursEl.value) || 0;
+      var days = Math.min(7, Math.max(0, parseFloat(daysEl.value) || 0));
+
+      var rateLPerHr = SFC * kw * (loadPct / 100);
+      var hoursPerWeek = hours * days;
+      var litresPerWeek = rateLPerHr * hoursPerWeek;
+      var costPerWeek = litresPerWeek * price;
+      var costPerMonth = costPerWeek * 4.33;
+      var costPerYear = costPerWeek * 52;
+      var litresPerYear = litresPerWeek * 52;
+      var co2PerYear = litresPerYear * CO2_PER_L;
+
+      outRate.textContent = rateLPerHr.toFixed(1) + ' L/hr';
+      outWeekL.textContent = Math.round(litresPerWeek).toLocaleString() + ' L';
+      outWeekCost.textContent = fmtMoney(costPerWeek);
+      outMonthCost.textContent = fmtMoney(costPerMonth);
+      outYearCost.textContent = fmtMoney(costPerYear);
+      outCo2.textContent = Math.round(co2PerYear).toLocaleString() + ' kg';
+    }
+
+    [kwEl, loadEl, priceEl, hoursEl, daysEl].forEach(function (el) {
+      el.addEventListener('input', compute);
+    });
+    compute();
+  })();
+
+  /* ================= CABLE & VOLTAGE DROP ================= */
+  (function () {
+    var ampsEl = document.getElementById('ggpt-cable-amps');
+    var lengthEl = document.getElementById('ggpt-cable-length');
+    var phaseEl = document.getElementById('ggpt-cable-phase');
+    var voltageEl = document.getElementById('ggpt-cable-voltage');
+    var maxDropEl = document.getElementById('ggpt-cable-maxdrop');
+    var outSize = document.getElementById('ggpt-cable-size');
+    var outDropV = document.getElementById('ggpt-cable-drop-v');
+    var outDropPct = document.getElementById('ggpt-cable-drop-pct');
+
+    // Typical mV/A/m for PVC-insulated multicore copper cable (indicative)
+    var CABLE_TABLE = [
+      { size: 1.5, mvam: 29 }, { size: 2.5, mvam: 18 }, { size: 4, mvam: 11 },
+      { size: 6, mvam: 7.6 }, { size: 10, mvam: 4.4 }, { size: 16, mvam: 2.8 },
+      { size: 25, mvam: 1.75 }, { size: 35, mvam: 1.25 }, { size: 50, mvam: 0.93 },
+      { size: 70, mvam: 0.63 }, { size: 95, mvam: 0.46 }, { size: 120, mvam: 0.36 },
+      { size: 150, mvam: 0.29 }, { size: 185, mvam: 0.23 }, { size: 240, mvam: 0.18 }
+    ];
+
+    function compute() {
+      var amps = parseFloat(ampsEl.value) || 0;
+      var length = parseFloat(lengthEl.value) || 0;
+      var volt = parseFloat(voltageEl.value) || (phaseEl.value === '1' ? 230 : 400);
+      var maxDropPct = Math.min(10, Math.max(0.5, parseFloat(maxDropEl.value) || 5));
+
+      var chosen = null;
+      for (var i = 0; i < CABLE_TABLE.length; i++) {
+        var c = CABLE_TABLE[i];
+        var dropV = (c.mvam * amps * length) / 1000;
+        var dropPct = volt > 0 ? (dropV / volt) * 100 : 0;
+        if (dropPct <= maxDropPct) { chosen = { size: c.size, dropV: dropV, dropPct: dropPct }; break; }
+      }
+
+      if (!chosen) {
+        var last = CABLE_TABLE[CABLE_TABLE.length - 1];
+        var dV = (last.mvam * amps * length) / 1000;
+        chosen = { size: last.size, dropV: dV, dropPct: volt > 0 ? (dV / volt) * 100 : 0, exceeds: true };
+      }
+
+      outSize.textContent = (chosen.exceeds ? '>' : '') + chosen.size + ' mm²';
+      outDropV.textContent = chosen.dropV.toFixed(1) + ' V';
+      outDropPct.textContent = chosen.dropPct.toFixed(2) + '%';
+    }
+
+    [ampsEl, lengthEl, phaseEl, voltageEl, maxDropEl].forEach(function (el) {
+      el.addEventListener('input', compute);
+      el.addEventListener('change', compute);
+    });
+    phaseEl.addEventListener('change', function () {
+      voltageEl.value = phaseEl.value === '1' ? 230 : 400;
+      compute();
+    });
+    compute();
+  })();
+
+  /* ================= BATTERY BACKUP ================= */
+  (function () {
+    var modeGroup = document.getElementById('ggpt-battery-mode');
+    var fieldsRuntime = root.querySelector('[data-battery-mode-fields="runtime"]');
+    var fieldsSize = root.querySelector('[data-battery-mode-fields="size"]');
+    var outRuntimeWrap = root.querySelector('[data-battery-mode-out="runtime"]');
+    var outSizeWrap = root.querySelector('[data-battery-mode-out="size"]');
+
+    var ahR = document.getElementById('ggpt-batt-ah');
+    var voltR = document.getElementById('ggpt-batt-voltage-r');
+    var dodR = document.getElementById('ggpt-batt-dod-r');
+    var effR = document.getElementById('ggpt-batt-eff-r');
+    var loadR = document.getElementById('ggpt-batt-load-r');
+    var outRuntime = document.getElementById('ggpt-batt-runtime');
+
+    var loadS = document.getElementById('ggpt-batt-load-s');
+    var hoursS = document.getElementById('ggpt-batt-hours-s');
+    var voltS = document.getElementById('ggpt-batt-voltage-s');
+    var dodS = document.getElementById('ggpt-batt-dod-s');
+    var effS = document.getElementById('ggpt-batt-eff-s');
+    var unitAh = document.getElementById('ggpt-batt-unit-ah');
+    var outRequiredAh = document.getElementById('ggpt-batt-required-ah');
+    var outKwh = document.getElementById('ggpt-batt-kwh');
+    var outCount = document.getElementById('ggpt-batt-count');
+
+    modeGroup.addEventListener('click', function (e) {
+      var btn = e.target.closest('.ggpt-toggle-btn');
+      if (!btn) return;
+      var m = btn.getAttribute('data-mode');
+      Array.prototype.forEach.call(modeGroup.querySelectorAll('.ggpt-toggle-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      fieldsRuntime.hidden = m !== 'runtime';
+      fieldsSize.hidden = m !== 'size';
+      outRuntimeWrap.hidden = m !== 'runtime';
+      outSizeWrap.hidden = m !== 'size';
+    });
+
+    function computeRuntime() {
+      var ah = parseFloat(ahR.value) || 0;
+      var v = parseFloat(voltR.value) || 24;
+      var dod = Math.min(100, Math.max(1, parseFloat(dodR.value) || 50)) / 100;
+      var eff = Math.min(100, Math.max(1, parseFloat(effR.value) || 90)) / 100;
+      var load = parseFloat(loadR.value) || 0;
+
+      var usableWh = ah * v * dod * eff;
+      var hours = load > 0 ? usableWh / load : 0;
+      var h = Math.floor(hours);
+      var m = Math.round((hours - h) * 60);
+      outRuntime.textContent = hours > 0 ? (h + 'h ' + m + 'm') : '0h 0m';
+    }
+
+    function computeSize() {
+      var load = parseFloat(loadS.value) || 0;
+      var hours = parseFloat(hoursS.value) || 0;
+      var v = parseFloat(voltS.value) || 24;
+      var dod = Math.min(100, Math.max(1, parseFloat(dodS.value) || 50)) / 100;
+      var eff = Math.min(100, Math.max(1, parseFloat(effS.value) || 90)) / 100;
+      var unit = Math.max(1, parseFloat(unitAh.value) || 100);
+
+      var wh = load * hours;
+      var requiredAh = (v > 0 && dod > 0 && eff > 0) ? wh / (v * dod * eff) : 0;
+      var count = Math.ceil(requiredAh / unit);
+
+      outRequiredAh.textContent = Math.round(requiredAh).toLocaleString() + ' Ah';
+      outKwh.textContent = (wh / 1000).toFixed(2) + ' kWh';
+      outCount.textContent = (isFinite(count) && count > 0 ? count : 0) + ' x ' + unit + 'Ah';
+    }
+
+    [ahR, voltR, dodR, effR, loadR].forEach(function (el) {
+      el.addEventListener('input', computeRuntime);
+      el.addEventListener('change', computeRuntime);
+    });
+    [loadS, hoursS, voltS, dodS, effS, unitAh].forEach(function (el) {
+      el.addEventListener('input', computeSize);
+      el.addEventListener('change', computeSize);
+    });
+
+    computeRuntime();
+    computeSize();
+  })();
+
+  /* ================= ALTITUDE & TEMP DERATING ================= */
+  (function () {
+    var targetEl = document.getElementById('ggpt-derate-target');
+    var altEl = document.getElementById('ggpt-derate-altitude');
+    var tempEl = document.getElementById('ggpt-derate-temp');
+    var outAltPct = document.getElementById('ggpt-derate-alt-pct');
+    var outTempPct = document.getElementById('ggpt-derate-temp-pct');
+    var outRequired = document.getElementById('ggpt-derate-required');
+    var results = document.getElementById('ggpt-derate-results');
+    var grid = document.getElementById('ggpt-derate-products');
+
+    function compute() {
+      var target = parseFloat(targetEl.value) || 0;
+      var alt = parseFloat(altEl.value) || 0;
+      var temp = parseFloat(tempEl.value) || 0;
+
+      var altDerate = alt > 1000 ? ((alt - 1000) / 100) * 1 : 0;
+      var tempDerate = temp > 40 ? (temp - 40) * 1 : 0;
+      var totalDerate = Math.min(90, altDerate + tempDerate);
+
+      var required = totalDerate < 100 ? target / (1 - totalDerate / 100) : target;
+
+      outAltPct.textContent = altDerate.toFixed(1) + '%';
+      outTempPct.textContent = tempDerate.toFixed(1) + '%';
+      outRequired.textContent = required.toFixed(1) + ' kVA';
+
+      renderProductSuggestions(results, grid, required);
+    }
+
+    [targetEl, altEl, tempEl].forEach(function (el) {
+      el.addEventListener('input', compute);
+    });
+    compute();
+  })();
+
+})();
+</script>

@@ -1,11 +1,31 @@
 # Gogopower Power Usage Calculator
 
-Two ways to run the same calculator (HTML + CSS + JS + Liquid) on the Gogopower Shopify store:
+Two separate, complementary tools live in this repo, each shipped two ways (a theme section with settings, and a standalone Custom Liquid paste-in version):
+
+## 1. Power Usage Calculator (appliance load list -> recommended generator)
 
 - **`sections/ggp-power-calculator.liquid`** — a real theme section with a `{% schema %}` block. Recommended: settings are edited from the theme customizer (collection picker, contact link, etc.) instead of code, and it can be deployed via git/GitHub instead of copy-paste. See [Install as a theme section](#install-as-a-theme-section) below.
 - **`gogopower-energy-calculator.liquid`** — the standalone version meant to be pasted into a "Custom Liquid" block. Kept for reference / stores that can't add theme files. See [Install via Custom Liquid (copy-paste)](#install-via-custom-liquid-copy-paste) below.
 
-Functionally the two are identical.
+Functionally the two are identical. Lets visitors pick appliances (household/commercial/industrial/agriculture), builds a load list, and estimates daily usage + recommended generator kVA with matching products.
+
+## 2. Generator & Battery Sizing Toolkit (six standard industry calculators)
+
+- **`sections/ggp-power-tools.liquid`** — theme section version.
+- **`ggp-power-tools-calculator.liquid`** — standalone Custom Liquid paste-in version.
+
+A separate, complementary page/section (deliberately does **not** duplicate the appliance load-list calculator above) containing six calculators commonly found on generator/battery vendor sites:
+
+1. **kVA / kW / Amps Converter** — enter any one of kVA, kW or Amps plus power factor, phase and voltage, get the other two live.
+2. **Motor Starting (Surge) Calculator** — running vs. starting kVA for a motor load, using standard DOL/Star-Delta/Soft-Starter/VFD multiplier presets. Generator sizing mistakes are usually about starting load, not running load - this is why it's separate from the converter.
+3. **Fuel Consumption & Running Cost Calculator** — estimated L/hr, weekly/monthly/annual fuel cost and CO₂, from a rated kW + load % + fuel price.
+4. **Cable Size & Voltage Drop Calculator** — recommends a minimum copper cable size from load current, cable length and max allowable voltage drop %, using a typical mV/A/m reference table.
+5. **Battery Backup & Bank Sizing Calculator** — toggle between "how long will my battery last" and "what size bank do I need," covering voltage/DoD/inverter efficiency.
+6. **Altitude & Temperature Derating Calculator** — works out the nameplate kVA you need to buy so a site at altitude/high ambient temp still delivers your required output.
+
+The Converter, Motor Starting and Altitude/Temp Derating tools each show **live-matching Gogopower generator suggestions** underneath their result, using the exact same collection + kVA metafield lookup as the Power Usage Calculator above (see Configuration below - both tools share the same settings shape, configured independently per section/file).
+
+**Important - these are indicative, rule-of-thumb calculators**, clearly labelled as such in the UI (fuel consumption, cable sizing and derating figures especially). They're for budgeting and first-pass sizing, not a substitute for a proper electrical/engineering sign-off - each panel that carries real safety/compliance weight (cable sizing in particular) says so directly under its result.
 
 ## Install as a theme section
 
