@@ -20,9 +20,13 @@
     {%- for product in ggpt_collection.products -%}
       {%- assign ggpt_kva_val = product.metafields[ggpt_kva_namespace][ggpt_kva_key] -%}
       {%- if ggpt_kva_val != blank -%}
+        {%- assign ggpt_img = '' -%}
+        {%- if product.featured_image -%}
+          {%- assign ggpt_img = product.featured_image | image_url: width: 300 -%}
+        {%- endif -%}
         {%- unless ggpt_first -%},{%- endunless -%}
         {%- assign ggpt_first = false -%}
-        {"title": {{ product.title | json }}, "kva": {{ ggpt_kva_val | json }}, "price": {{ product.price | money | json }}, "url": {{ product.url | json }}}
+        {"title": {{ product.title | json }}, "kva": {{ ggpt_kva_val | json }}, "price": {{ product.price | money | json }}, "url": {{ product.url | json }}, "image": {{ ggpt_img | json }}}
       {%- endif -%}
     {%- endfor -%}
   {%- endpaginate -%}
@@ -626,6 +630,14 @@
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
   }
   #ggpt-calculator .ggpt-product-card:hover { border-color: var(--ggpt-green); box-shadow: 0 4px 14px rgba(3,43,68,0.12); }
+  .ggpt-product-img {
+    width: 100%;
+    height: 140px;
+    object-fit: contain;
+    padding: 10px;
+    background: var(--ggpt-bg-soft);
+    display: block;
+  }
   .ggpt-product-body { padding: 14px; text-align: center; }
   .ggpt-product-title { font-weight: 700; font-size: 14.5px; margin: 0 0 8px; color: var(--ggpt-navy); }
   .ggpt-product-meta { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ggpt-grey); }
@@ -681,7 +693,8 @@
         title: p.title || 'Gogopower Generator',
         kva: parseFloat(p.kva) || 0,
         price: p.price || '',
-        url: p.url || '#'
+        url: p.url || '#',
+        image: p.image || ''
       };
     }).filter(function (p) { return p.kva > 0; });
   } catch (e) { PRODUCTS = []; }
@@ -713,7 +726,9 @@
     }
 
     gridEl.innerHTML = matches.map(function (p) {
+      var img = p.image ? '<img class="ggpt-product-img" src="' + escapeHtml(p.image) + '" alt="' + escapeHtml(p.title) + '" loading="lazy">' : '';
       return '<a class="ggpt-product-card" href="' + escapeHtml(p.url) + '">' +
+        img +
         '<div class="ggpt-product-body">' +
         '<p class="ggpt-product-title">' + escapeHtml(p.title) + '</p>' +
         '<div class="ggpt-product-meta"><span class="ggpt-product-kva">' + p.kva + ' kVA</span>' + (p.price ? '<span class="ggpt-product-price">' + escapeHtml(p.price) + '</span>' : '') + '</div>' +
