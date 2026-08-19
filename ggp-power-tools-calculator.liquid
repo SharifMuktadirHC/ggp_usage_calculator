@@ -75,9 +75,6 @@
     <button type="button" class="ggpt-tab" data-tool="battery" role="tab" aria-selected="false">
       <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="17" height="10" rx="1.5"/><line x1="21" y1="10" x2="21" y2="14"/><path d="M8 9v6M12 9v6"/></svg></span><span>Battery Backup</span>
     </button>
-    <button type="button" class="ggpt-tab" data-tool="derate" role="tab" aria-selected="false">
-      <span class="ggpt-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19l6-10 4 6 2-3 6 7z"/><circle cx="9" cy="7" r="1.3"/></svg></span><span>Altitude &amp; Temp Derating</span>
-    </button>
   </div>
 
   <!-- ============ PANEL: CONVERTER ============ -->
@@ -353,45 +350,6 @@
     <p class="ggpt-note">Lead-acid batteries are typically limited to ~50% depth of discharge for cycle life; lithium (LiFePO4) can often go to 80-90% - check your battery's datasheet.</p>
   </div>
 
-  <!-- ============ PANEL: ALTITUDE & TEMP DERATING ============ -->
-  <div class="ggpt-panel" data-tool-panel="derate" hidden>
-    <h3 class="ggpt-tool-title">Altitude &amp; Temperature Derating Calculator</h3>
-    <p class="ggpt-tool-desc">Diesel generators lose output at altitude and in high ambient heat. Work out the nameplate rating you need to buy so the site still gets the power you actually require.</p>
-
-    <div class="ggpt-field-grid">
-      <label class="ggpt-field">Required Output On Site (kVA)
-        <input type="number" id="ggpt-derate-target" min="0" step="1" value="100">
-      </label>
-      <label class="ggpt-field">Site Altitude (m above sea level)
-        <input type="number" id="ggpt-derate-altitude" min="0" step="10" value="1500">
-      </label>
-      <label class="ggpt-field">Site Ambient Temperature (&deg;C)
-        <input type="number" id="ggpt-derate-temp" min="-10" step="1" value="45">
-      </label>
-    </div>
-
-    <div class="ggpt-summary">
-      <div class="ggpt-summary-card">
-        <span>Altitude Derate</span>
-        <strong id="ggpt-derate-alt-pct">0%</strong>
-      </div>
-      <div class="ggpt-summary-card">
-        <span>Temperature Derate</span>
-        <strong id="ggpt-derate-temp-pct">0%</strong>
-      </div>
-      <div class="ggpt-summary-card ggpt-summary-highlight" style="grid-column:1/-1;">
-        <span>Nameplate Rating You Need to Buy</span>
-        <strong id="ggpt-derate-required">0 kVA</strong>
-      </div>
-    </div>
-    <p class="ggpt-note">Rule of thumb: roughly -1% capacity per 100m above 1000m altitude, and roughly -1% per &deg;C above 40&deg;C ambient. Every engine has its own derating curve - always confirm against the manufacturer's specific data sheet before finalising a purchase.</p>
-
-    <div class="ggpt-results" id="ggpt-derate-results" hidden>
-      <h4 class="ggpt-h4">Suggested Gogopower Generators (nameplate-sized for your site)</h4>
-      <div class="ggpt-products" id="ggpt-derate-products"></div>
-    </div>
-  </div>
-
   <!-- ============ CONTACT CTA ============ -->
   <div class="ggpt-contact-cta">
     <p>Need help interpreting these numbers, or a formal specification?</p>
@@ -417,6 +375,10 @@
     text-align: center;
   }
   #ggpt-calculator *, #ggpt-calculator *::before, #ggpt-calculator *::after { box-sizing: border-box; }
+  /* Elements like .ggpt-field-grid/.ggpt-summary set their own "display", which
+     (per CSS cascade rules) otherwise overrides the browser's native
+     [hidden]{display:none} - this forces hidden to always win. */
+  #ggpt-calculator [hidden] { display: none !important; }
 
   /* ---- Intro ---- */
   .ggpt-intro {
@@ -608,6 +570,23 @@
     50% { text-shadow: 0 0 14px rgba(60,147,66,1), 0 0 28px rgba(60,147,66,0.7); }
   }
 
+  /* ---- Motion: panel switch + value updates ---- */
+  .ggpt-panel { animation: ggpt-fade-in 0.35s ease; }
+  @keyframes ggpt-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ggpt-summary-card strong.ggpt-pop { animation: ggpt-pop 0.4s ease; }
+  @keyframes ggpt-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+  }
+  #ggpt-calculator .ggpt-tab { transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+  #ggpt-calculator .ggpt-tab:hover { transform: translateY(-1px); }
+  #ggpt-calculator .ggpt-product-card { transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+  #ggpt-calculator .ggpt-product-card:hover { transform: translateY(-2px); }
+
   /* ---- Mini stats row (fuel panel) ---- */
   .ggpt-mini-stats {
     display: flex;
@@ -715,6 +694,14 @@
     });
   }
 
+  function popText(el, text) {
+    if (el.textContent === text) return;
+    el.textContent = text;
+    el.classList.remove('ggpt-pop');
+    void el.offsetWidth; // force reflow so the animation restarts
+    el.classList.add('ggpt-pop');
+  }
+
   function renderProductSuggestions(resultsEl, gridEl, requiredKva) {
     if (!requiredKva || requiredKva <= 0 || isNaN(requiredKva)) {
       resultsEl.hidden = true;
@@ -801,7 +788,7 @@
 
       outKva.textContent = kva.toFixed(2) + ' kVA';
       outKw.textContent = kw.toFixed(2) + ' kW';
-      outAmps.textContent = amps.toFixed(1) + ' A';
+      popText(outAmps, amps.toFixed(1) + ' A');
 
       renderProductSuggestions(results, grid, kva);
     }
@@ -844,7 +831,7 @@
       var totalRunningKva = runningKva * q;
 
       outRunning.textContent = totalRunningKva.toFixed(2) + ' kVA';
-      outStarting.textContent = startingKva.toFixed(2) + ' kVA';
+      popText(outStarting, startingKva.toFixed(2) + ' kVA');
 
       renderProductSuggestions(results, grid, startingKva);
     }
@@ -895,7 +882,7 @@
 
       outRate.textContent = rateLPerHr.toFixed(1) + ' L/hr';
       outWeekL.textContent = Math.round(litresPerWeek).toLocaleString() + ' L';
-      outWeekCost.textContent = fmtMoney(costPerWeek);
+      popText(outWeekCost, fmtMoney(costPerWeek));
       outMonthCost.textContent = fmtMoney(costPerMonth);
       outYearCost.textContent = fmtMoney(costPerYear);
       outCo2.textContent = Math.round(co2PerYear).toLocaleString() + ' kg';
@@ -947,7 +934,7 @@
         chosen = { size: last.size, dropV: dV, dropPct: volt > 0 ? (dV / volt) * 100 : 0, exceeds: true };
       }
 
-      outSize.textContent = (chosen.exceeds ? '>' : '') + chosen.size + ' mm²';
+      popText(outSize, (chosen.exceeds ? '>' : '') + chosen.size + ' mm²');
       outDropV.textContent = chosen.dropV.toFixed(1) + ' V';
       outDropPct.textContent = chosen.dropPct.toFixed(2) + '%';
     }
@@ -1012,7 +999,7 @@
       var hours = load > 0 ? usableWh / load : 0;
       var h = Math.floor(hours);
       var m = Math.round((hours - h) * 60);
-      outRuntime.textContent = hours > 0 ? (h + 'h ' + m + 'm') : '0h 0m';
+      popText(outRuntime, hours > 0 ? (h + 'h ' + m + 'm') : '0h 0m');
     }
 
     function computeSize() {
@@ -1029,7 +1016,7 @@
 
       outRequiredAh.textContent = Math.round(requiredAh).toLocaleString() + ' Ah';
       outKwh.textContent = (wh / 1000).toFixed(2) + ' kWh';
-      outCount.textContent = (isFinite(count) && count > 0 ? count : 0) + ' x ' + unit + 'Ah';
+      popText(outCount, (isFinite(count) && count > 0 ? count : 0) + ' x ' + unit + 'Ah');
     }
 
     [ahR, voltR, dodR, effR, loadR].forEach(function (el) {
@@ -1043,41 +1030,6 @@
 
     computeRuntime();
     computeSize();
-  })();
-
-  /* ================= ALTITUDE & TEMP DERATING ================= */
-  (function () {
-    var targetEl = document.getElementById('ggpt-derate-target');
-    var altEl = document.getElementById('ggpt-derate-altitude');
-    var tempEl = document.getElementById('ggpt-derate-temp');
-    var outAltPct = document.getElementById('ggpt-derate-alt-pct');
-    var outTempPct = document.getElementById('ggpt-derate-temp-pct');
-    var outRequired = document.getElementById('ggpt-derate-required');
-    var results = document.getElementById('ggpt-derate-results');
-    var grid = document.getElementById('ggpt-derate-products');
-
-    function compute() {
-      var target = parseFloat(targetEl.value) || 0;
-      var alt = parseFloat(altEl.value) || 0;
-      var temp = parseFloat(tempEl.value) || 0;
-
-      var altDerate = alt > 1000 ? ((alt - 1000) / 100) * 1 : 0;
-      var tempDerate = temp > 40 ? (temp - 40) * 1 : 0;
-      var totalDerate = Math.min(90, altDerate + tempDerate);
-
-      var required = totalDerate < 100 ? target / (1 - totalDerate / 100) : target;
-
-      outAltPct.textContent = altDerate.toFixed(1) + '%';
-      outTempPct.textContent = tempDerate.toFixed(1) + '%';
-      outRequired.textContent = required.toFixed(1) + ' kVA';
-
-      renderProductSuggestions(results, grid, required);
-    }
-
-    [targetEl, altEl, tempEl].forEach(function (el) {
-      el.addEventListener('input', compute);
-    });
-    compute();
   })();
 
 })();
