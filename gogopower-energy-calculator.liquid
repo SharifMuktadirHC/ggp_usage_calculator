@@ -118,33 +118,23 @@
       </div>
     </div>
 
-    <!-- ============ LEAD GATE ============ -->
+    <!-- ============ LEAD GATE (Pipedrive web form) ============ -->
     <div class="ggp-lead-gate" id="ggp-lead-gate" hidden>
       <div class="ggp-lead-teaser" id="ggp-lead-teaser">
         <p class="ggp-lead-heading">Get your recommended generator size</p>
-        <p class="ggp-lead-sub">Enter your email and we'll unlock your recommended capacity, plus matching Gogopower generators.</p>
+        <p class="ggp-lead-sub">Fill in your details and we'll unlock your recommended capacity, plus matching Gogopower generators.</p>
         <button type="button" class="ggp-btn ggp-btn-primary ggp-btn-large" id="ggp-lead-reveal-btn">Show My Recommendation</button>
       </div>
 
-      {% form 'contact', id: 'ggp-lead-form' %}
-        {%- assign ggp_form_posted = form.posted_successfully? -%}
-        <div class="ggp-lead-form" id="ggp-lead-form-wrap" hidden>
-          {% if form.errors %}
-            <p class="ggp-lead-error">{{ form.errors | default_errors }}</p>
-          {% endif %}
-          <input type="hidden" name="contact[body]" id="ggp-lead-body" value="">
-          <div class="ggp-lead-form-row">
-            <input type="email" name="contact[email]" id="ggp-lead-email" placeholder="you@company.com" required>
-            <button type="submit" class="ggp-btn ggp-btn-primary" id="ggp-lead-submit-btn">Get My Result</button>
-          </div>
-          <p class="ggp-lead-privacy">We'll only use this to send your recommendation and occasional generator tips. No spam.</p>
-          <p class="ggp-lead-error" id="ggp-lead-js-error" hidden></p>
-        </div>
-      {% endform %}
+      <div class="ggp-lead-form-wrap" id="ggp-lead-form-wrap" hidden>
+        <p class="ggp-lead-loading" id="ggp-lead-loading">Loading form…</p>
+        <div id="ggp-pipedrive-mount"></div>
+        <button type="button" class="ggp-btn ggp-btn-outline ggp-lead-manual-btn" id="ggp-lead-manual-unlock-btn">I've submitted the form — Show My Recommendation</button>
+      </div>
     </div>
 
-    <!-- ============ UNLOCKED RESULTS (shown after email is submitted) ============ -->
-    <div class="ggp-unlocked" id="ggp-unlocked" hidden {% if ggp_form_posted %}data-posted-successfully="true"{% endif %}>
+    <!-- ============ UNLOCKED RESULTS (shown after the lead form is submitted) ============ -->
+    <div class="ggp-unlocked" id="ggp-unlocked" hidden>
       <div class="ggp-summary">
         <div class="ggp-summary-card ggp-summary-highlight" style="grid-column:1/-1;">
           <span>Recommended Capacity</span>
@@ -493,24 +483,10 @@
   }
   .ggp-lead-heading { color: var(--ggp-navy); font-size: 19px; font-weight: 700; margin: 0 0 8px; }
   .ggp-lead-sub { color: var(--ggp-grey); font-size: 14px; margin: 0 0 18px; max-width: 480px; margin-left: auto; margin-right: auto; }
-  .ggp-lead-form-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    max-width: 460px;
-    margin: 0 auto;
-  }
-  .ggp-lead-form-row input[type="email"] {
-    flex: 1 1 240px;
-    padding: 12px 14px;
-    border: 1px solid var(--ggp-black);
-    border-radius: 8px;
-    font-size: 14px;
-  }
-  .ggp-lead-form-row input[type="email"]:focus { outline: 2px solid var(--ggp-green); outline-offset: 1px; }
-  .ggp-lead-privacy { font-size: 12px; color: var(--ggp-grey); margin: 12px 0 0; }
-  .ggp-lead-error { font-size: 13px; font-weight: 600; color: #c0392b; margin: 12px 0 0; }
+  .ggp-lead-form-wrap { max-width: 480px; margin: 0 auto; text-align: center; }
+  .ggp-lead-loading { color: var(--ggp-grey); font-size: 13.5px; padding: 20px 0; }
+  #ggp-pipedrive-mount { text-align: left; }
+  .ggp-lead-manual-btn { margin-top: 16px; width: 100%; }
 
   /* ---- Unlocked results ---- */
   .ggp-unlocked { margin-top: 24px; }
@@ -693,16 +669,14 @@
     leadGate: document.getElementById('ggp-lead-gate'),
     leadTeaser: document.getElementById('ggp-lead-teaser'),
     leadRevealBtn: document.getElementById('ggp-lead-reveal-btn'),
-    leadForm: document.getElementById('ggp-lead-form'),
     leadFormWrap: document.getElementById('ggp-lead-form-wrap'),
-    leadEmail: document.getElementById('ggp-lead-email'),
-    leadBody: document.getElementById('ggp-lead-body'),
-    leadSubmitBtn: document.getElementById('ggp-lead-submit-btn'),
-    leadJsError: document.getElementById('ggp-lead-js-error'),
+    leadLoading: document.getElementById('ggp-lead-loading'),
+    pipedriveMount: document.getElementById('ggp-pipedrive-mount'),
+    leadManualUnlockBtn: document.getElementById('ggp-lead-manual-unlock-btn'),
     unlocked: document.getElementById('ggp-unlocked')
   };
 
-  var leadCaptured = !!(els.unlocked && els.unlocked.dataset.postedSuccessfully === 'true');
+  var leadCaptured = false;
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, function (c) {
@@ -828,61 +802,60 @@
     removeItem(row.getAttribute('data-uid'));
   });
 
-  /* ---------------- Lead gate ---------------- */
+  /* ---------------- Lead gate (Pipedrive web form) ---------------- */
+  var PIPEDRIVE_FORM_URL = 'https://webforms.pipedrive.com/f/6zjmyFYdeMn3ZFryrnTNPqBWDS1mmGG6zflLSQzGjgpLaxHNJpE18b6CvTMEV52fxp';
+  var pipedriveLoaded = false;
+
   function updateGateVisibility() {
     var hasItems = items.length > 0;
     els.leadGate.hidden = !hasItems || leadCaptured;
     els.unlocked.hidden = !hasItems || !leadCaptured;
   }
 
+  function unlockResults() {
+    leadCaptured = true;
+    updateGateVisibility();
+  }
+
+  function loadPipedriveForm() {
+    if (pipedriveLoaded) return;
+    pipedriveLoaded = true;
+
+    var mount = document.createElement('div');
+    mount.className = 'pipedriveWebForms';
+    mount.setAttribute('data-pd-webforms', PIPEDRIVE_FORM_URL);
+    els.pipedriveMount.appendChild(mount);
+
+    var script = document.createElement('script');
+    script.src = 'https://webforms.pipedrive.com/f/loader';
+    script.onload = function () { if (els.leadLoading) els.leadLoading.hidden = true; };
+    script.onerror = function () {
+      if (els.leadLoading) els.leadLoading.textContent = 'Could not load the form - please use the button below once you have enquired, or refresh the page.';
+    };
+    document.body.appendChild(script);
+
+    // Fallback in case the load/onload event doesn't fire as expected
+    setTimeout(function () { if (els.leadLoading) els.leadLoading.hidden = true; }, 4000);
+  }
+
   els.leadRevealBtn.addEventListener('click', function () {
     els.leadTeaser.hidden = true;
     els.leadFormWrap.hidden = false;
-    els.leadEmail.focus();
+    loadPipedriveForm();
   });
 
-  function buildLeadSummary() {
-    var lines = [
-      'Power Usage Calculator submission',
-      'Total Connected Load: ' + els.totalWatts.textContent,
-      'Estimated Daily Usage: ' + els.totalKwh.textContent,
-      'Recommended Capacity: ' + els.totalKva.textContent,
-      '',
-      'Appliance list:'
-    ];
-    items.forEach(function (it) {
-      lines.push('- ' + it.name + ' x' + it.qty + ' (' + it.watts + 'W, ' + it.hours + 'h/day)');
-    });
-    return lines.join('\n');
-  }
+  els.leadManualUnlockBtn.addEventListener('click', unlockResults);
 
-  els.leadForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var email = els.leadEmail.value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      els.leadJsError.textContent = 'Please enter a valid email address.';
-      els.leadJsError.hidden = false;
-      return;
-    }
-    els.leadJsError.hidden = true;
-    els.leadBody.value = buildLeadSummary();
-    els.leadSubmitBtn.disabled = true;
-    els.leadSubmitBtn.textContent = 'Sending…';
-
-    fetch(els.leadForm.action, { method: 'POST', body: new FormData(els.leadForm) })
-      .then(function (res) {
-        if (!res.ok) throw new Error('Request failed');
-        leadCaptured = true;
-        updateGateVisibility();
-      })
-      .catch(function () {
-        els.leadJsError.textContent = 'Something went wrong sending that - please try again.';
-        els.leadJsError.hidden = false;
-      })
-      .then(function () {
-        els.leadSubmitBtn.disabled = false;
-        els.leadSubmitBtn.textContent = 'Get My Result';
-      });
+  // Best-effort: Pipedrive's embedded form posts messages to the parent window
+  // (e.g. for iframe resizing). If a message looks like a successful submission,
+  // unlock automatically. The "I've submitted" button above is the guaranteed
+  // fallback if this doesn't fire for any reason.
+  window.addEventListener('message', function (e) {
+    if (leadCaptured) return;
+    if (typeof e.origin !== 'string' || e.origin.indexOf('pipedrive.com') === -1) return;
+    var text = '';
+    try { text = JSON.stringify(e.data); } catch (err) { text = String(e.data); }
+    if (/success|submit|thank/i.test(text)) unlockResults();
   });
 
   /* ---------------- Totals + product matching ---------------- */
