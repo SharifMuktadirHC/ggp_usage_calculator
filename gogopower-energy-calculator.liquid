@@ -116,16 +116,47 @@
         <span>Estimated Daily Usage</span>
         <strong id="ggp-total-kwh">0 kWh/day</strong>
       </div>
-      <div class="ggp-summary-card ggp-summary-highlight">
-        <span>Recommended Capacity</span>
-        <strong id="ggp-total-kva">0 kVA</strong>
-      </div>
     </div>
 
-    <div class="ggp-results" id="ggp-results" hidden>
-      <h3 class="ggp-h3">Recommended Gogopower Generators</h3>
-      <div class="ggp-products" id="ggp-products-grid"></div>
-      <p class="ggp-empty-msg" id="ggp-no-products" hidden>We couldn't find an exact match in our range — contact our team below and we'll help size the right system for you.</p>
+    <!-- ============ LEAD GATE ============ -->
+    <div class="ggp-lead-gate" id="ggp-lead-gate" hidden>
+      <div class="ggp-lead-teaser" id="ggp-lead-teaser">
+        <p class="ggp-lead-heading">Get your recommended generator size</p>
+        <p class="ggp-lead-sub">Enter your email and we'll unlock your recommended capacity, plus matching Gogopower generators.</p>
+        <button type="button" class="ggp-btn ggp-btn-primary ggp-btn-large" id="ggp-lead-reveal-btn">Show My Recommendation</button>
+      </div>
+
+      {% form 'contact', id: 'ggp-lead-form' %}
+        {%- assign ggp_form_posted = form.posted_successfully? -%}
+        <div class="ggp-lead-form" id="ggp-lead-form-wrap" hidden>
+          {% if form.errors %}
+            <p class="ggp-lead-error">{{ form.errors | default_errors }}</p>
+          {% endif %}
+          <input type="hidden" name="contact[body]" id="ggp-lead-body" value="">
+          <div class="ggp-lead-form-row">
+            <input type="email" name="contact[email]" id="ggp-lead-email" placeholder="you@company.com" required>
+            <button type="submit" class="ggp-btn ggp-btn-primary" id="ggp-lead-submit-btn">Get My Result</button>
+          </div>
+          <p class="ggp-lead-privacy">We'll only use this to send your recommendation and occasional generator tips. No spam.</p>
+          <p class="ggp-lead-error" id="ggp-lead-js-error" hidden></p>
+        </div>
+      {% endform %}
+    </div>
+
+    <!-- ============ UNLOCKED RESULTS (shown after email is submitted) ============ -->
+    <div class="ggp-unlocked" id="ggp-unlocked" hidden {% if ggp_form_posted %}data-posted-successfully="true"{% endif %}>
+      <div class="ggp-summary">
+        <div class="ggp-summary-card ggp-summary-highlight" style="grid-column:1/-1;">
+          <span>Recommended Capacity</span>
+          <strong id="ggp-total-kva">0 kVA</strong>
+        </div>
+      </div>
+
+      <div class="ggp-results" id="ggp-results" hidden>
+        <h3 class="ggp-h3">Recommended Gogopower Generators</h3>
+        <div class="ggp-products" id="ggp-products-grid"></div>
+        <p class="ggp-empty-msg" id="ggp-no-products" hidden>We couldn't find an exact match in our range — contact our team below and we'll help size the right system for you.</p>
+      </div>
     </div>
 
     <div class="ggp-contact-cta">
@@ -451,6 +482,40 @@
   }
   .ggp-product-cta { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--ggp-green); }
 
+  /* ---- Lead gate ---- */
+  .ggp-lead-gate {
+    margin-top: 24px;
+    padding: 28px 24px;
+    border: 1px solid var(--ggp-black);
+    border-radius: 12px;
+    background: var(--ggp-bg-soft);
+    text-align: center;
+  }
+  .ggp-lead-heading { color: var(--ggp-navy); font-size: 19px; font-weight: 700; margin: 0 0 8px; }
+  .ggp-lead-sub { color: var(--ggp-grey); font-size: 14px; margin: 0 0 18px; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .ggp-lead-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+  .ggp-lead-form-row input[type="email"] {
+    flex: 1 1 240px;
+    padding: 12px 14px;
+    border: 1px solid var(--ggp-black);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .ggp-lead-form-row input[type="email"]:focus { outline: 2px solid var(--ggp-green); outline-offset: 1px; }
+  .ggp-lead-privacy { font-size: 12px; color: var(--ggp-grey); margin: 12px 0 0; }
+  .ggp-lead-error { font-size: 13px; font-weight: 600; color: #c0392b; margin: 12px 0 0; }
+
+  /* ---- Unlocked results ---- */
+  .ggp-unlocked { margin-top: 24px; }
+  .ggp-unlocked .ggp-summary { margin-top: 0; }
+
   /* ---- Contact CTA ---- */
   .ggp-contact-cta {
     margin-top: 34px;
@@ -624,8 +689,20 @@
     totalKva: document.getElementById('ggp-total-kva'),
     results: document.getElementById('ggp-results'),
     productsGrid: document.getElementById('ggp-products-grid'),
-    noProducts: document.getElementById('ggp-no-products')
+    noProducts: document.getElementById('ggp-no-products'),
+    leadGate: document.getElementById('ggp-lead-gate'),
+    leadTeaser: document.getElementById('ggp-lead-teaser'),
+    leadRevealBtn: document.getElementById('ggp-lead-reveal-btn'),
+    leadForm: document.getElementById('ggp-lead-form'),
+    leadFormWrap: document.getElementById('ggp-lead-form-wrap'),
+    leadEmail: document.getElementById('ggp-lead-email'),
+    leadBody: document.getElementById('ggp-lead-body'),
+    leadSubmitBtn: document.getElementById('ggp-lead-submit-btn'),
+    leadJsError: document.getElementById('ggp-lead-js-error'),
+    unlocked: document.getElementById('ggp-unlocked')
   };
+
+  var leadCaptured = !!(els.unlocked && els.unlocked.dataset.postedSuccessfully === 'true');
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, function (c) {
@@ -751,6 +828,63 @@
     removeItem(row.getAttribute('data-uid'));
   });
 
+  /* ---------------- Lead gate ---------------- */
+  function updateGateVisibility() {
+    var hasItems = items.length > 0;
+    els.leadGate.hidden = !hasItems || leadCaptured;
+    els.unlocked.hidden = !hasItems || !leadCaptured;
+  }
+
+  els.leadRevealBtn.addEventListener('click', function () {
+    els.leadTeaser.hidden = true;
+    els.leadFormWrap.hidden = false;
+    els.leadEmail.focus();
+  });
+
+  function buildLeadSummary() {
+    var lines = [
+      'Power Usage Calculator submission',
+      'Total Connected Load: ' + els.totalWatts.textContent,
+      'Estimated Daily Usage: ' + els.totalKwh.textContent,
+      'Recommended Capacity: ' + els.totalKva.textContent,
+      '',
+      'Appliance list:'
+    ];
+    items.forEach(function (it) {
+      lines.push('- ' + it.name + ' x' + it.qty + ' (' + it.watts + 'W, ' + it.hours + 'h/day)');
+    });
+    return lines.join('\n');
+  }
+
+  els.leadForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = els.leadEmail.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      els.leadJsError.textContent = 'Please enter a valid email address.';
+      els.leadJsError.hidden = false;
+      return;
+    }
+    els.leadJsError.hidden = true;
+    els.leadBody.value = buildLeadSummary();
+    els.leadSubmitBtn.disabled = true;
+    els.leadSubmitBtn.textContent = 'Sending…';
+
+    fetch(els.leadForm.action, { method: 'POST', body: new FormData(els.leadForm) })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Request failed');
+        leadCaptured = true;
+        updateGateVisibility();
+      })
+      .catch(function () {
+        els.leadJsError.textContent = 'Something went wrong sending that - please try again.';
+        els.leadJsError.hidden = false;
+      })
+      .then(function () {
+        els.leadSubmitBtn.disabled = false;
+        els.leadSubmitBtn.textContent = 'Get My Result';
+      });
+  });
+
   /* ---------------- Totals + product matching ---------------- */
   function computeTotals() {
     var totalWatts = 0;
@@ -765,6 +899,7 @@
     els.totalKwh.textContent = totalKwh.toFixed(1) + ' kWh/day';
     els.totalKva.textContent = requiredKva.toFixed(1) + ' kVA';
 
+    updateGateVisibility();
     renderSuggestions(requiredKva);
   }
 

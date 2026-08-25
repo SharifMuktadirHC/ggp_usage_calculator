@@ -9,6 +9,8 @@ Two separate, complementary tools live in this repo, each shipped two ways (a th
 
 Functionally the two are identical. Lets visitors pick appliances (household/commercial/industrial/agriculture), builds a load list, and estimates daily usage + recommended generator kVA with matching products.
 
+**Lead-gated recommendation:** Total Connected Load and Estimated Daily Usage are shown immediately. Recommended Capacity and the matching-product suggestions are hidden behind an email capture step - visitors enter their email, which submits via Shopify's native contact form (`{% form 'contact', id: 'ggp-lead-form' %}`, AJAX-submitted so the page doesn't reload), before those numbers appear. The submission's message body includes the computed totals and full appliance list, so the notification email you receive already contains the lead's required generator size, not just their email address. This uses whatever email address/notification settings your store's contact form already sends to (Shopify Admin → Settings → Notifications) - no extra app or webhook needed. If JS is blocked, the form still works as a normal page-reload submission (progressive enhancement); on that reload `form.posted_successfully?` is checked so the results correctly reveal without asking twice.
+
 ## 2. Generator & Battery Sizing Toolkit (six standard industry calculators)
 
 - **`sections/ggp-power-tools.liquid`** — theme section version.
