@@ -798,6 +798,14 @@
 
   /* ---------------- Lead gate (Pipedrive web form) ---------------- */
   var PIPEDRIVE_FORM_URL = 'https://webforms.pipedrive.com/f/6zjmyFYdeMn3ZFryrnTNPqBWDS1mmGG6zflLSQzGjgpLaxHNJpE18b6CvTMEV52fxp';
+
+  // Pre-fills a Notes/Message field on the Pipedrive form with the calculated
+  // power requirement, so it lands in the lead record automatically.
+  // To enable: in your Pipedrive form builder, get the prefill URL parameter
+  // key for a free-text field (Notes/Message/Comments), then paste it below.
+  // Leave blank to skip pre-filling (the form just loads with nothing extra).
+  var PIPEDRIVE_NOTES_FIELD_KEY = '';
+
   var pipedriveLoaded = false;
 
   function updateGateVisibility() {
@@ -811,13 +819,25 @@
     updateGateVisibility();
   }
 
+  function buildLeadSummary() {
+    return 'Total Connected Load: ' + els.totalWatts.textContent +
+      ' | Estimated Daily Usage: ' + els.totalKwh.textContent +
+      ' | Recommended Capacity: ' + els.totalKva.textContent;
+  }
+
   function loadPipedriveForm() {
     if (pipedriveLoaded) return;
     pipedriveLoaded = true;
 
+    var formUrl = PIPEDRIVE_FORM_URL;
+    if (PIPEDRIVE_NOTES_FIELD_KEY) {
+      var separator = formUrl.indexOf('?') === -1 ? '?' : '&';
+      formUrl += separator + encodeURIComponent(PIPEDRIVE_NOTES_FIELD_KEY) + '=' + encodeURIComponent(buildLeadSummary());
+    }
+
     var mount = document.createElement('div');
     mount.className = 'pipedriveWebForms';
-    mount.setAttribute('data-pd-webforms', PIPEDRIVE_FORM_URL);
+    mount.setAttribute('data-pd-webforms', formUrl);
     els.pipedriveMount.appendChild(mount);
 
     var script = document.createElement('script');
