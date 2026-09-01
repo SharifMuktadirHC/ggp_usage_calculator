@@ -830,7 +830,7 @@
     script.src = 'https://webforms.pipedrive.com/f/loader';
     script.onload = function () { if (els.leadLoading) els.leadLoading.hidden = true; };
     script.onerror = function () {
-      if (els.leadLoading) els.leadLoading.textContent = 'Could not load the form - please use the button below once you have enquired, or refresh the page.';
+      if (els.leadLoading) els.leadLoading.textContent = 'Could not load the form - please refresh the page and try again.';
     };
     document.body.appendChild(script);
 
