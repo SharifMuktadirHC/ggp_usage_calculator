@@ -114,17 +114,11 @@
 
     <!-- ============ LEAD GATE (Pipedrive web form) ============ -->
     <div class="ggp-lead-gate" id="ggp-lead-gate" hidden>
-      <div class="ggp-lead-teaser" id="ggp-lead-teaser">
-        <p class="ggp-lead-heading">Get your recommended generator size</p>
-        <p class="ggp-lead-sub">Fill in your details and we'll unlock your recommended capacity, plus matching Gogopower generators.</p>
-        <button type="button" class="ggp-btn ggp-btn-primary ggp-btn-large" id="ggp-lead-reveal-btn">Show My Recommendation</button>
-      </div>
-
-      <div class="ggp-lead-form-wrap" id="ggp-lead-form-wrap" hidden>
-        <p class="ggp-lead-loading" id="ggp-lead-loading">Loading form…</p>
-        <div id="ggp-pipedrive-mount"></div>
-        <button type="button" class="ggp-btn ggp-btn-outline ggp-lead-manual-btn" id="ggp-lead-manual-unlock-btn">I've submitted the form — Show My Recommendation</button>
-      </div>
+      <p class="ggp-lead-heading">Get your recommended generator size</p>
+      <p class="ggp-lead-sub">Fill in your details below and we'll show your recommended capacity, plus matching Gogopower generators.</p>
+      <p class="ggp-lead-loading" id="ggp-lead-loading">Loading form…</p>
+      <div id="ggp-pipedrive-mount"></div>
+      <button type="button" class="ggp-btn ggp-btn-outline ggp-lead-manual-btn" id="ggp-lead-manual-unlock-btn">I've submitted the form — Show My Recommendation</button>
     </div>
 
     <!-- ============ UNLOCKED RESULTS (shown after the lead form is submitted) ============ -->
@@ -477,7 +471,6 @@
   }
   .ggp-lead-heading { color: var(--ggp-navy); font-size: 19px; font-weight: 700; margin: 0 0 8px; }
   .ggp-lead-sub { color: var(--ggp-grey); font-size: 14px; margin: 0 0 18px; max-width: 480px; margin-left: auto; margin-right: auto; }
-  .ggp-lead-form-wrap { max-width: 480px; margin: 0 auto; text-align: center; }
   .ggp-lead-loading { color: var(--ggp-grey); font-size: 13.5px; padding: 20px 0; }
   #ggp-pipedrive-mount { text-align: left; }
   .ggp-lead-manual-btn { margin-top: 16px; width: 100%; }
@@ -661,9 +654,6 @@
     productsGrid: document.getElementById('ggp-products-grid'),
     noProducts: document.getElementById('ggp-no-products'),
     leadGate: document.getElementById('ggp-lead-gate'),
-    leadTeaser: document.getElementById('ggp-lead-teaser'),
-    leadRevealBtn: document.getElementById('ggp-lead-reveal-btn'),
-    leadFormWrap: document.getElementById('ggp-lead-form-wrap'),
     leadLoading: document.getElementById('ggp-lead-loading'),
     pipedriveMount: document.getElementById('ggp-pipedrive-mount'),
     leadManualUnlockBtn: document.getElementById('ggp-lead-manual-unlock-btn'),
@@ -809,9 +799,8 @@
   var pipedriveLoaded = false;
 
   function updateGateVisibility() {
-    var hasItems = items.length > 0;
-    els.leadGate.hidden = !hasItems || leadCaptured;
-    els.unlocked.hidden = !hasItems || !leadCaptured;
+    els.leadGate.hidden = leadCaptured;
+    els.unlocked.hidden = !leadCaptured;
   }
 
   function unlockResults() {
@@ -851,12 +840,6 @@
     // Fallback in case the load/onload event doesn't fire as expected
     setTimeout(function () { if (els.leadLoading) els.leadLoading.hidden = true; }, 4000);
   }
-
-  els.leadRevealBtn.addEventListener('click', function () {
-    els.leadTeaser.hidden = true;
-    els.leadFormWrap.hidden = false;
-    loadPipedriveForm();
-  });
 
   els.leadManualUnlockBtn.addEventListener('click', unlockResults);
 
@@ -926,6 +909,8 @@
   });
 
   renderGrid();
+  updateGateVisibility();
+  loadPipedriveForm();
 })();
 </script>
 
