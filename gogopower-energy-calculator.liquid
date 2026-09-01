@@ -124,7 +124,6 @@
       <p class="ggp-lead-sub">Fill in your details below and we'll show your recommended capacity, plus matching Gogopower generators.</p>
       <p class="ggp-lead-loading" id="ggp-lead-loading">Loading form…</p>
       <div id="ggp-pipedrive-mount"></div>
-      <button type="button" class="ggp-btn ggp-btn-outline ggp-lead-manual-btn" id="ggp-lead-manual-unlock-btn">I've submitted the form — Show My Recommendation</button>
     </div>
 
     <!-- ============ UNLOCKED RESULTS (shown after the lead form is submitted) ============ -->
@@ -478,8 +477,7 @@
   .ggp-lead-heading { color: var(--ggp-navy); font-size: 19px; font-weight: 700; margin: 0 0 8px; }
   .ggp-lead-sub { color: var(--ggp-grey); font-size: 14px; margin: 0 0 18px; max-width: 480px; margin-left: auto; margin-right: auto; }
   .ggp-lead-loading { color: var(--ggp-grey); font-size: 13.5px; padding: 20px 0; }
-  #ggp-pipedrive-mount { text-align: left; }
-  .ggp-lead-manual-btn { margin-top: 16px; width: 100%; }
+  #ggp-pipedrive-mount { text-align: left; max-width: 420px; margin: 0 auto; }
 
   /* ---- Unlocked results ---- */
   .ggp-unlocked { margin-top: 24px; }
@@ -662,7 +660,6 @@
     leadGate: document.getElementById('ggp-lead-gate'),
     leadLoading: document.getElementById('ggp-lead-loading'),
     pipedriveMount: document.getElementById('ggp-pipedrive-mount'),
-    leadManualUnlockBtn: document.getElementById('ggp-lead-manual-unlock-btn'),
     unlocked: document.getElementById('ggp-unlocked')
   };
 
@@ -793,7 +790,7 @@
   });
 
   /* ---------------- Lead gate (Pipedrive web form) ---------------- */
-  var PIPEDRIVE_FORM_URL = 'https://webforms.pipedrive.com/f/6zjmyFYdeMn3ZFryrnTNPqBWDS1mmGG6zflLSQzGjgpLaxHNJpE18b6CvTMEV52fxp';
+  var PIPEDRIVE_FORM_URL = 'https://webforms.pipedrive.com/f/73QOAfAZ8NNwsfgt50BuhbSQMp0CH8zhGlVm3wwZgbcHq1y9vMId8QvGbJXLn9oSXx';
 
   // Pre-fills a Notes/Message field on the Pipedrive form with the calculated
   // power requirement, so it lands in the lead record automatically.
@@ -847,15 +844,41 @@
     setTimeout(function () { if (els.leadLoading) els.leadLoading.hidden = true; }, 4000);
   }
 
-  els.leadManualUnlockBtn.addEventListener('click', unlockResults);
+  // Pipedrive's embedded form posts messages to the parent window (it's a
+  // cross-origin iframe, so this is the only channel available). There is no
+  // publicly documented "submitted" event name, so two signals are combined:
+  // (1) any message whose payload text mentions submit/success/thank, and
+  // (2) the iframe's own resize messages - Pipedrive posts these on every
+  // layout change, and when the multi-field form is replaced by a short
+  // "thank you" confirmation the reported height drops sharply. Seeing a
+  // big height drop after the form has had time to render is a strong signal
+  // the visitor just submitted it.
+  var pipedriveInitialHeight = null;
+  var pipedriveFirstHeightAt = null;
 
-  // Best-effort: Pipedrive's embedded form posts messages to the parent window
-  // (e.g. for iframe resizing). If a message looks like a successful submission,
-  // unlock automatically. The "I've submitted" button above is the guaranteed
-  // fallback if this doesn't fire for any reason.
   window.addEventListener('message', function (e) {
     if (leadCaptured) return;
     if (typeof e.origin !== 'string' || e.origin.indexOf('pipedrive.com') === -1) return;
+
+    var data = e.data;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (err) { /* leave as string */ }
+    }
+    var payload = data && data.payload;
+    if (payload && typeof payload.height === 'number') {
+      if (pipedriveInitialHeight === null) {
+        pipedriveInitialHeight = payload.height;
+        pipedriveFirstHeightAt = Date.now();
+      } else if (
+        payload.height < pipedriveInitialHeight * 0.6 &&
+        pipedriveInitialHeight > 150 &&
+        Date.now() - pipedriveFirstHeightAt > 1500
+      ) {
+        unlockResults();
+        return;
+      }
+    }
+
     var text = '';
     try { text = JSON.stringify(e.data); } catch (err) { text = String(e.data); }
     if (/success|submit|thank/i.test(text)) unlockResults();
