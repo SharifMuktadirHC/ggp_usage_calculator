@@ -840,15 +840,20 @@
 
   // Pipedrive's embedded form posts messages to the parent window (it's a
   // cross-origin iframe, so this is the only channel available). There is no
-  // publicly documented "submitted" event name, so two signals are combined:
-  // (1) any message whose payload text mentions submit/success/thank, and
+  // publicly documented "submitted" event name, so a few signals are combined:
+  // (1) any message whose payload text mentions submit/success/thank/complete,
   // (2) the iframe's own resize messages - Pipedrive posts these on every
-  // layout change, and when the multi-field form is replaced by a short
-  // "thank you" confirmation the reported height drops sharply. Seeing a
-  // big height drop after the form has had time to render is a strong signal
-  // the visitor just submitted it.
-  var pipedriveInitialHeight = null;
-  var pipedriveFirstHeightAt = null;
+  // layout change. The form's height typically fluctuates for a moment while
+  // it first renders (fonts/fields loading in) and then settles; once it has
+  // been stable for a bit, any further change - up or down - almost always
+  // means the multi-field form was swapped out for a short confirmation
+  // screen, i.e. a submission. Window resizes are ignored as a possible cause
+  // since those aren't a submission.
+  var pdLastHeight = null;
+  var pdStableSince = null;
+  var pdLastWindowResizeAt = 0;
+
+  window.addEventListener('resize', function () { pdLastWindowResizeAt = Date.now(); });
 
   window.addEventListener('message', function (e) {
     if (leadCaptured) return;
@@ -858,24 +863,34 @@
     if (typeof data === 'string') {
       try { data = JSON.parse(data); } catch (err) { /* leave as string */ }
     }
+
+    if (window.console && console.debug) { console.debug('[GGP Pipedrive message]', data); }
+
     var payload = data && data.payload;
     if (payload && typeof payload.height === 'number') {
-      if (pipedriveInitialHeight === null) {
-        pipedriveInitialHeight = payload.height;
-        pipedriveFirstHeightAt = Date.now();
-      } else if (
-        payload.height < pipedriveInitialHeight * 0.6 &&
-        pipedriveInitialHeight > 150 &&
-        Date.now() - pipedriveFirstHeightAt > 1500
-      ) {
-        unlockResults();
-        return;
+      var h = payload.height;
+      var now = Date.now();
+      var recentWindowResize = now - pdLastWindowResizeAt < 800;
+
+      if (pdLastHeight === null) {
+        pdLastHeight = h;
+        pdStableSince = now;
+      } else if (Math.abs(h - pdLastHeight) < 4) {
+        // unchanged - just extends how long it's been stable
+      } else {
+        var wasStableLongEnough = pdStableSince !== null && (now - pdStableSince) > 1200;
+        pdLastHeight = h;
+        pdStableSince = now;
+        if (wasStableLongEnough && !recentWindowResize) {
+          unlockResults();
+          return;
+        }
       }
     }
 
     var text = '';
-    try { text = JSON.stringify(e.data); } catch (err) { text = String(e.data); }
-    if (/success|submit|thank/i.test(text)) unlockResults();
+    try { text = JSON.stringify(data); } catch (err) { text = String(data); }
+    if (/success|submit|thank|complete/i.test(text)) unlockResults();
   });
 
   /* ---------------- Totals + product matching ---------------- */
