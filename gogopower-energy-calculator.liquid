@@ -856,8 +856,13 @@
   // triggers, at the cost of depending on Pipedrive actually including such
   // wording in its message. console.debug logging is kept so a real
   // submission's payload can be inspected via DevTools if this needs an exact
-  // match instead.
+  // match instead. Logs every message this window receives (not just ones
+  // that pass the pipedrive.com origin check) so a mismatched/unexpected
+  // origin can't hide the real payload during debugging.
   window.addEventListener('message', function (e) {
+    if (window.console && console.debug) {
+      console.debug('[GGP message]', 'origin=' + e.origin, e.data);
+    }
     if (leadCaptured) return;
     if (typeof e.origin !== 'string' || e.origin.indexOf('pipedrive.com') === -1) return;
 
@@ -865,8 +870,6 @@
     if (typeof data === 'string') {
       try { data = JSON.parse(data); } catch (err) { /* leave as string */ }
     }
-
-    if (window.console && console.debug) { console.debug('[GGP Pipedrive message]', data); }
 
     var text = '';
     try { text = JSON.stringify(data); } catch (err) { text = String(data); }
