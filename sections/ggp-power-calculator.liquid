@@ -836,27 +836,33 @@
 
     // Fallback in case the load/onload event doesn't fire as expected
     setTimeout(function () { if (els.leadLoading) els.leadLoading.hidden = true; }, 4000);
+
+    watchForSubmission();
   }
 
-  // Pipedrive's embedded form posts messages to the parent window (it's a
-  // cross-origin iframe, so this is the only channel available), but there is
-  // no publicly documented "submitted" event name. An earlier version of this
-  // also tried to infer a submission from the iframe's self-reported resize
-  // height changing after settling - that caused false positives/negatives on
-  // mobile, where the iframe's height genuinely fluctuates on its own (virtual
-  // keyboard opening when a field is tapped, address-bar collapse on scroll,
-  // orientation changes), unrelated to submitting the form. Removed - relying
-  // only on message text that explicitly indicates success avoids those false
-  // triggers, at the cost of depending on Pipedrive actually including such
-  // wording in its message. console.debug logging is kept so a real
-  // submission's payload can be inspected via DevTools if this needs an exact
-  // match instead. Logs every message this window receives (not just ones
-  // that pass the pipedrive.com origin check) so a mismatched/unexpected
-  // origin can't hide the real payload during debugging.
+  // Live testing showed no postMessage ever arrives from Pipedrive on this
+  // page, while the confirmation text ("Success! Thank you for your
+  // submission.") does appear inside #ggp-pipedrive-mount - meaning this
+  // embed renders the form directly into the page's own DOM rather than a
+  // cross-origin iframe. That means the confirmation text is readable
+  // directly: watch the mount for DOM changes and unlock as soon as it
+  // contains that text.
+  function watchForSubmission() {
+    if (!window.MutationObserver) return;
+    var observer = new MutationObserver(function () {
+      if (leadCaptured) { observer.disconnect(); return; }
+      var text = els.pipedriveMount.textContent || '';
+      if (/success|thank you for your submission/i.test(text)) {
+        unlockResults();
+        observer.disconnect();
+      }
+    });
+    observer.observe(els.pipedriveMount, { childList: true, subtree: true, characterData: true });
+  }
+
+  // Kept as a harmless fallback in case a differently-configured Pipedrive
+  // form does use an iframe/postMessage instead.
   window.addEventListener('message', function (e) {
-    if (window.console && console.debug) {
-      console.debug('[GGP message]', 'origin=' + e.origin, e.data);
-    }
     if (leadCaptured) return;
     if (typeof e.origin !== 'string' || e.origin.indexOf('pipedrive.com') === -1) return;
 
