@@ -840,28 +840,71 @@
     watchForSubmission();
   }
 
-  // Live testing showed no postMessage ever arrives from Pipedrive on this
-  // page, while the confirmation text ("Success! Thank you for your
-  // submission.") does appear inside #ggp-pipedrive-mount - meaning this
-  // embed renders the form directly into the page's own DOM rather than a
-  // cross-origin iframe. That means the confirmation text is readable
-  // directly: watch the mount for DOM changes and unlock as soon as it
-  // contains that text.
+  // DevTools inspection confirmed this genuinely is a cross-origin iframe
+  // (<iframe src="https://webforms.pipedrive.com/f/...">), so its internal
+  // content (including the "Success!" confirmation text) is completely
+  // invisible to this page's JS - textContent/MutationObserver on the outer
+  // container can never see inside it, no matter what. Live console testing
+  // also showed no postMessage ever arriving here, ruling that channel out
+  // too. What IS visible and confirmed by inspecting the live page: Pipedrive
+  // sets the iframe's own "style" (height) attribute directly, and that
+  // attribute lives on the <iframe> element itself, which is part of our own
+  // page's DOM - completely observable regardless of the iframe's cross-origin
+  // content. So: wait for the iframe to appear inside the mount, then watch
+  // its style attribute; once its height has settled after the initial
+  // render, any further change is Pipedrive swapping the multi-field form for
+  // the (differently sized) confirmation screen, i.e. a submission.
   function watchForSubmission() {
     if (!window.MutationObserver) return;
-    var observer = new MutationObserver(function () {
-      if (leadCaptured) { observer.disconnect(); return; }
-      var text = els.pipedriveMount.textContent || '';
-      if (/success|thank you for your submission/i.test(text)) {
-        unlockResults();
-        observer.disconnect();
+
+    var lastHeight = null;
+    var stableSince = null;
+
+    function checkHeight(iframe) {
+      var h = parseFloat(iframe.style.height);
+      if (isNaN(h)) h = iframe.offsetHeight;
+      if (window.console && console.debug) { console.debug('[GGP iframe height]', h); }
+      var now = Date.now();
+      if (lastHeight === null) {
+        lastHeight = h;
+        stableSince = now;
+        return;
+      }
+      if (Math.abs(h - lastHeight) < 2) return;
+      var wasStable = stableSince !== null && (now - stableSince) > 1500;
+      lastHeight = h;
+      stableSince = now;
+      if (wasStable) unlockResults();
+    }
+
+    function watchIframe(iframe) {
+      checkHeight(iframe);
+      var styleObserver = new MutationObserver(function () {
+        if (leadCaptured) { styleObserver.disconnect(); return; }
+        checkHeight(iframe);
+      });
+      styleObserver.observe(iframe, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    var existingIframe = els.pipedriveMount.querySelector('iframe');
+    if (existingIframe) {
+      watchIframe(existingIframe);
+      return;
+    }
+
+    var findObserver = new MutationObserver(function () {
+      if (leadCaptured) { findObserver.disconnect(); return; }
+      var iframe = els.pipedriveMount.querySelector('iframe');
+      if (iframe) {
+        watchIframe(iframe);
+        findObserver.disconnect();
       }
     });
-    observer.observe(els.pipedriveMount, { childList: true, subtree: true, characterData: true });
+    findObserver.observe(els.pipedriveMount, { childList: true, subtree: true });
   }
 
   // Kept as a harmless fallback in case a differently-configured Pipedrive
-  // form does use an iframe/postMessage instead.
+  // form does post a message this page can read.
   window.addEventListener('message', function (e) {
     if (leadCaptured) return;
     if (typeof e.origin !== 'string' || e.origin.indexOf('pipedrive.com') === -1) return;
